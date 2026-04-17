@@ -34,7 +34,9 @@ Object.keys(pack_data.defines).map(kc => {
 
 (function(document) {
   $(document).ready(() => {
-    if (_store.get('mechvibes-theme', 'light') === 'dark') {
+    const _savedTheme = _store.get('mechvibes-theme', 'system');
+    const _prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (_savedTheme === 'dark' || (_savedTheme === 'system' && _prefersDark)) {
       document.body.classList.add('dark');
     }
 

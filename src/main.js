@@ -11,7 +11,7 @@ const store = new Store();
 const iohook = require('iohook');
 
 // Apply saved theme before any window is created so the title bar starts correctly
-nativeTheme.themeSource = store.get('mechvibes-theme', 'light');
+nativeTheme.themeSource = store.get('mechvibes-theme', 'system');
 
 const StartupHandler = require('./utils/startup_handler');
 const StoreToggle = require('./utils/store_toggle');
@@ -175,7 +175,7 @@ fs.ensureDirSync(custom_dir);
 
 function createWindow(show = false) {
   // Create the browser window.
-  const isDark = store.get('mechvibes-theme', 'light') === 'dark';
+  const isDark = nativeTheme.shouldUseDarkColors;
   win = new BrowserWindow({
     name: "app", // used by logger to differentiate messages sent by different windows.
     width: 400,
@@ -606,11 +606,13 @@ if (!gotTheLock) {
     }
 
     ipcMain.on("set-theme", (_event, theme) => {
+      if (!['system', 'light', 'dark'].includes(theme)) return;
       nativeTheme.themeSource = theme;
       if (win && !win.isDestroyed() && typeof win.setTitleBarOverlay === 'function') {
+        const useDark = nativeTheme.shouldUseDarkColors;
         win.setTitleBarOverlay({
-          color: theme === 'dark' ? '#1a1a1a' : '#f0f0f0',
-          symbolColor: theme === 'dark' ? '#e0e0e0' : '#333333',
+          color: useDark ? '#1a1a1a' : '#f0f0f0',
+          symbolColor: useDark ? '#e0e0e0' : '#333333',
         });
       }
     })

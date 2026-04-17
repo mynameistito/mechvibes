@@ -21,13 +21,13 @@
 }
 
 
-/* interactive elements must opt out of drag */
-select,
-input,
-a,
-button,
-.checkbox-group,
-.slider {
+/* interactive elements inside titlebar must opt out of drag */
+.titlebar select,
+.titlebar input,
+.titlebar a,
+.titlebar button,
+.titlebar .checkbox-group,
+.titlebar .slider {
   -webkit-app-region: no-drag;
 }
 

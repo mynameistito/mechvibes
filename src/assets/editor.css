@@ -205,6 +205,7 @@ body.dark .key:hover {
 }
 
 body.dark .key-pressed {
+  color: #e0e0e0;
   background: #5a2a2a !important;
 }
 

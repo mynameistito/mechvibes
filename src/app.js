@@ -392,12 +392,13 @@ function packsToOptions(packs, pack_list) {
     initTray();
 
     // theme toggle
-    const savedTheme = store.get(MV_THEME_LSID, 'light');
-    if (savedTheme === 'dark') {
+    const savedTheme = store.get(MV_THEME_LSID, 'system');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDarkMode = savedTheme === 'dark' || (savedTheme === 'system' && prefersDark);
+    if (isDarkMode) {
       document.body.classList.add('dark');
       theme_toggle.checked = true;
     }
-    ipcRenderer.send('set-theme', savedTheme);
     theme_toggle_group.onclick = function(e) {
       e.preventDefault();
       e.stopPropagation();
