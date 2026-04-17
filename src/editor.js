@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const { shell } = require('electron');
+const Store = require('electron-store');
+const _store = new Store();
 
 const remapper = require('./utils/remapper');
 const layouts = require('./libs/layouts');
@@ -32,6 +34,10 @@ Object.keys(pack_data.defines).map(kc => {
 
 (function(document) {
   $(document).ready(() => {
+    if (_store.get('mechvibes-theme', 'light') === 'dark') {
+      document.body.classList.add('dark');
+    }
+
     // a little hack for open link in browser
     Array.from(document.getElementsByClassName('open-in-browser')).forEach(elem => {
       elem.addEventListener('click', e => {

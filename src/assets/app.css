@@ -1,3 +1,36 @@
+.titlebar {
+  -webkit-app-region: drag;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+  background: #f0f0f0;
+  color: #333;
+  font-size: 12px;
+  user-select: none;
+}
+
+.titlebar-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.titlebar-title {
+  font-size: 12px;
+}
+
+
+/* interactive elements must opt out of drag */
+select,
+input,
+a,
+button,
+.checkbox-group,
+.slider {
+  -webkit-app-region: no-drag;
+}
+
 a,
 a:hover {
   color: #ff5050;
@@ -243,4 +276,78 @@ table {
 .warning-level:nth-child(4){
   flex:1;
   background-color: #ff3333;
+}
+
+/* Dark mode */
+body.dark .titlebar {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+
+body.dark {
+  --checkbox-background: #1e1e1e;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+body.dark a,
+body.dark a:hover {
+  color: #ff6b6b;
+}
+
+body.dark #logo {
+  background: #242424;
+  border-color: #555;
+  color: #e0e0e0;
+  box-shadow: 0 2px #cc3333;
+}
+
+body.dark .divider {
+  border-color: #333;
+}
+
+body.dark .alert {
+  background: #2a1a1a;
+  border-color: #7a3030;
+  color: #e0e0e0;
+}
+
+body.dark .slider {
+  background: #444;
+}
+
+body.dark .button {
+  background-color: #242424;
+  border-color: #444;
+  color: #ff6b6b;
+}
+
+body.dark .button-secondary {
+  color: #ccc;
+}
+
+body.dark .progress {
+  background-color: #444;
+}
+
+body.dark select.custom-input {
+  background-color: #242424;
+  color: #e0e0e0;
+  border-color: #444;
+}
+
+body.dark td,
+body.dark th {
+  border-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+body.dark small,
+body.dark p {
+  color: inherit;
+}
+
+body.dark #app-version {
+  color: #555 !important;
 }

@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, Tray, Menu, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, shell, ipcMain, nativeTheme } = require('electron');
 const { getVolume, getMute } = require('easy-volume');
 const path = require('path');
 const os = require("os");
@@ -9,6 +9,9 @@ const log = require("electron-log");
 const Store = require("electron-store");
 const store = new Store();
 const iohook = require('iohook');
+
+// Apply saved theme before any window is created so the title bar starts correctly
+nativeTheme.themeSource = store.get('mechvibes-theme', 'light');
 
 const StartupHandler = require('./utils/startup_handler');
 const StoreToggle = require('./utils/store_toggle');
@@ -172,6 +175,7 @@ fs.ensureDirSync(custom_dir);
 
 function createWindow(show = false) {
   // Create the browser window.
+  const isDark = store.get('mechvibes-theme', 'light') === 'dark';
   win = new BrowserWindow({
     name: "app", // used by logger to differentiate messages sent by different windows.
     width: 400,
@@ -180,6 +184,11 @@ function createWindow(show = false) {
     webSecurity: false,
     // resizable: false,
     // fullscreenable: false,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: isDark ? '#1a1a1a' : '#f0f0f0',
+      symbolColor: isDark ? '#e0e0e0' : '#333333',
+    },
     webPreferences: {
       preload: path.join(__dirname, 'app.js'),
       contextIsolation: false,
@@ -595,6 +604,16 @@ if (!gotTheLock) {
         })
       }
     }
+
+    ipcMain.on("set-theme", (_event, theme) => {
+      nativeTheme.themeSource = theme;
+      if (win && !win.isDestroyed() && typeof win.setTitleBarOverlay === 'function') {
+        win.setTitleBarOverlay({
+          color: theme === 'dark' ? '#1a1a1a' : '#f0f0f0',
+          symbolColor: theme === 'dark' ? '#e0e0e0' : '#333333',
+        });
+      }
+    })
 
     ipcMain.on("show_tray_icon", (event, show) => {
       if(show && tray === null){

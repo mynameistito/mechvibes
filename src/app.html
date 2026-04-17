@@ -9,7 +9,12 @@
     <link rel="stylesheet" href="./assets/app.css" />
   </head>
 
-  <body style="padding: 2rem; padding-bottom: 0;">
+  <body style="padding: 0;">
+    <div class="titlebar">
+      <img src="./assets/icon.png" class="titlebar-icon" alt="" />
+      <span class="titlebar-title">Mechvibes Legacy</span>
+    </div>
+    <div style="padding: 2rem; padding-bottom: 0;">
     <div id="app-logo">
       <div id="logo">Loading...</div>
     </div>
@@ -60,6 +65,14 @@
               </div>
             </td>
           </tr>
+          <tr class="checkbox-group" id="theme_toggle_group">
+            <td style="width: 50%">Dark Mode</td>
+            <td style="width: 50%">
+              <div style="display:grid;grid-template-columns: 1em auto;font-size: 2rem;justify-content:right;">
+                <input type="checkbox" class="checkbox mb-0" id="theme_toggle"/>
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
       <div class="divider"></div>
@@ -90,6 +103,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
   </body>
 </html>

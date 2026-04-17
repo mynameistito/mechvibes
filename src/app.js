@@ -16,6 +16,7 @@ const { GetFileFromArchive } = require('./libs/soundpacks/file-manager');
 const MV_PACK_LSID = remote.getGlobal("current_pack_store_id");
 const MV_VOL_LSID = 'mechvibes-volume';
 const MV_TRAY_LSID = 'mechvibes-hidden';
+const MV_THEME_LSID = 'mechvibes-theme';
 
 const CUSTOM_PACKS_DIR = remote.getGlobal('custom_dir');
 const OFFICIAL_PACKS_DIR = path.join(__dirname, 'audio');
@@ -320,6 +321,8 @@ function packsToOptions(packs, pack_list) {
     const volume = document.getElementById('volume');
     const tray_icon_toggle = document.getElementById("tray_icon_toggle");
     const tray_icon_toggle_group = document.getElementById("tray_icon_toggle_group");
+    const theme_toggle = document.getElementById("theme_toggle");
+    const theme_toggle_group = document.getElementById("theme_toggle_group");
 
     // init
     app_logo.innerHTML = 'Loading...';
@@ -387,6 +390,27 @@ function packsToOptions(packs, pack_list) {
       ipcRenderer.send("show_tray_icon", tray_icon_toggle.checked);
     }
     initTray();
+
+    // theme toggle
+    const savedTheme = store.get(MV_THEME_LSID, 'light');
+    if (savedTheme === 'dark') {
+      document.body.classList.add('dark');
+      theme_toggle.checked = true;
+    }
+    ipcRenderer.send('set-theme', savedTheme);
+    theme_toggle_group.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      theme_toggle.checked = !theme_toggle.checked;
+      const theme = theme_toggle.checked ? 'dark' : 'light';
+      if (theme_toggle.checked) {
+        document.body.classList.add('dark');
+      } else {
+        document.body.classList.remove('dark');
+      }
+      store.set(MV_THEME_LSID, theme);
+      ipcRenderer.send('set-theme', theme);
+    };
 
     // volume
     let displayVolume = () => {
