@@ -1,3 +1,36 @@
+.titlebar {
+  -webkit-app-region: drag;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+  background: #f0f0f0;
+  color: #333;
+  font-size: 12px;
+  user-select: none;
+}
+
+.titlebar-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.titlebar-title {
+  font-size: 12px;
+}
+
+
+/* interactive elements inside titlebar must opt out of drag */
+.titlebar select,
+.titlebar input,
+.titlebar a,
+.titlebar button,
+.titlebar .checkbox-group,
+.titlebar .slider {
+  -webkit-app-region: no-drag;
+}
+
 a,
 a:hover {
   color: #ff5050;
@@ -243,4 +276,137 @@ table {
 .warning-level:nth-child(4){
   flex:1;
   background-color: #ff3333;
+}
+
+/* Dark mode */
+body.dark .titlebar {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+
+body.dark {
+  --checkbox-background: #1e1e1e;
+
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+body.dark a,
+body.dark a:hover {
+  color: #ff6b6b;
+}
+
+body.dark #logo {
+  background: #242424;
+  border-color: #555;
+  color: #e0e0e0;
+  box-shadow: 0 2px #cc3333;
+}
+
+body.dark .divider {
+  border-color: #333;
+}
+
+body.dark .alert {
+  background: #2a1a1a;
+  border-color: #7a3030;
+  color: #e0e0e0;
+}
+
+body.dark .slider {
+  background: #444;
+}
+
+body.dark .button {
+  background-color: #242424;
+  border-color: #444;
+  color: #ff6b6b;
+}
+
+body.dark .button-secondary {
+  color: #ccc;
+}
+
+body.dark .progress {
+  background-color: #444;
+}
+
+body.dark select.custom-input {
+  background-color: #242424;
+  color: #e0e0e0;
+  border-color: #444;
+}
+
+body.dark td,
+body.dark th {
+  border-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+body.dark small,
+body.dark p {
+  color: inherit;
+}
+
+body.dark #app-version {
+  color: #555 !important;
+}
+
+/* Key cap display */
+#hotkey_button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+#hotkey_button.recording-hotkey {
+  font-size: 10px;
+  color: #999;
+  font-style: italic;
+}
+
+.key-sep {
+  font-size: 11px;
+  font-weight: 700;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+body:not(.dark) .key-sep {
+  color: #666;
+}
+
+.key-cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2e2e2e;
+  color: #f0f0f0;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: inherit;
+  min-width: 20px;
+  box-shadow: 0 2px 0 #111;
+  border: 1px solid #4a4a4a;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+body:not(.dark) .key-cap {
+  background-color: #d8d8d8;
+  color: #111;
+  border-color: #999;
+  box-shadow: 0 2px 0 #777;
 }

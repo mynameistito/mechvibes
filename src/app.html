@@ -9,7 +9,12 @@
     <link rel="stylesheet" href="./assets/app.css" />
   </head>
 
-  <body style="padding: 2rem; padding-bottom: 0;">
+  <body style="padding: 0;">
+    <div class="titlebar">
+      <img src="./assets/icon.png" class="titlebar-icon" alt="" />
+      <span class="titlebar-title">Mechvibes Legacy</span>
+    </div>
+    <div style="padding: 2rem; padding-bottom: 0;">
     <div id="app-logo">
       <div id="logo">Loading...</div>
     </div>
@@ -56,8 +61,30 @@
             <td style="width: 50%">Show Tray Icon</td>
             <td style="width: 50%">
               <div style="display:grid;grid-template-columns: 1em auto;font-size: 2rem;justify-content:right;">
-                <input type="checkbox" class="checkbox mb-0" id="tray_icon_toggle" checked/>
+                <input type="checkbox" class="checkbox mb-0" id="tray_icon_toggle" checked aria-label="Show Tray Icon"/>
               </div>
+            </td>
+          </tr>
+          <tr class="checkbox-group" id="theme_toggle_group">
+            <td style="width: 50%">Dark Mode</td>
+            <td style="width: 50%">
+              <div style="display:grid;grid-template-columns: 1em auto;font-size: 2rem;justify-content:right;">
+                <input type="checkbox" class="checkbox mb-0" id="theme_toggle" aria-label="Dark Mode"/>
+              </div>
+            </td>
+          </tr>
+          <tr class="checkbox-group" id="mute_toggle_group">
+            <td style="width: 50%">Mute</td>
+            <td style="width: 50%">
+              <div style="display:grid;grid-template-columns: 1em auto;font-size: 2rem;justify-content:right;">
+                <input type="checkbox" class="checkbox mb-0" id="mute_toggle" aria-label="Mute"/>
+              </div>
+            </td>
+          </tr>
+          <tr id="hotkey_row">
+            <td style="width: 50%; vertical-align: middle;">Mute Hotkey</td>
+            <td style="width: 50%; text-align: right;">
+              <button type="button" id="hotkey_button" class="mb-0 recording-hotkey" title="Click to change hotkey">Click to set</button>
             </td>
           </tr>
         </tbody>
@@ -90,6 +117,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
   </body>
 </html>

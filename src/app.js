@@ -16,6 +16,7 @@ const { GetFileFromArchive } = require('./libs/soundpacks/file-manager');
 const MV_PACK_LSID = remote.getGlobal("current_pack_store_id");
 const MV_VOL_LSID = 'mechvibes-volume';
 const MV_TRAY_LSID = 'mechvibes-hidden';
+const MV_THEME_LSID = 'mechvibes-theme';
 
 const CUSTOM_PACKS_DIR = remote.getGlobal('custom_dir');
 const OFFICIAL_PACKS_DIR = path.join(__dirname, 'audio');
@@ -127,8 +128,8 @@ function unloadAllPacks(){
 // load all pack
 async function loadPacks() {
   // get all audio folders
-  const official_packs = await glob.sync(OFFICIAL_PACKS_DIR + '/*');
-  const custom_packs = await glob.sync(CUSTOM_PACKS_DIR + '/*');
+  const official_packs = await glob.sync(OFFICIAL_PACKS_DIR.replace(/\\/g, '/') + '/*');
+  const custom_packs = await glob.sync(CUSTOM_PACKS_DIR.replace(/\\/g, '/') + '/*');
   const folders = [...official_packs, ...custom_packs];
 
   log.info(`Loading ${folders.length} packs`);
@@ -140,7 +141,8 @@ async function loadPacks() {
     // get folder name
     const folder_name = path.basename(folder);
     // define if custom pack
-    const is_custom = (folder.substring(0, CUSTOM_PACKS_DIR.length) == CUSTOM_PACKS_DIR) ? true : false;
+    const normalizedCustomDir = CUSTOM_PACKS_DIR.replace(/\\/g, '/');
+    const is_custom = folder.startsWith(normalizedCustomDir);
     const is_archive = path.extname(folder) == '.zip';
 
     let config_json = null;
@@ -320,6 +322,11 @@ function packsToOptions(packs, pack_list) {
     const volume = document.getElementById('volume');
     const tray_icon_toggle = document.getElementById("tray_icon_toggle");
     const tray_icon_toggle_group = document.getElementById("tray_icon_toggle_group");
+    const theme_toggle = document.getElementById("theme_toggle");
+    const theme_toggle_group = document.getElementById("theme_toggle_group");
+    const mute_toggle = document.getElementById("mute_toggle");
+    const mute_toggle_group = document.getElementById("mute_toggle_group");
+    const hotkey_button = document.getElementById("hotkey_button");
 
     // init
     app_logo.innerHTML = 'Loading...';
@@ -387,6 +394,28 @@ function packsToOptions(packs, pack_list) {
       ipcRenderer.send("show_tray_icon", tray_icon_toggle.checked);
     }
     initTray();
+
+    // theme toggle
+    const savedTheme = store.get(MV_THEME_LSID, 'system');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDarkMode = savedTheme === 'dark' || (savedTheme === 'system' && prefersDark);
+    if (isDarkMode) {
+      document.body.classList.add('dark');
+      theme_toggle.checked = true;
+    }
+    theme_toggle_group.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      theme_toggle.checked = !theme_toggle.checked;
+      const theme = theme_toggle.checked ? 'dark' : 'light';
+      if (theme_toggle.checked) {
+        document.body.classList.add('dark');
+      } else {
+        document.body.classList.remove('dark');
+      }
+      store.set(MV_THEME_LSID, theme);
+      ipcRenderer.send('set-theme', theme);
+    };
 
     // volume
     let displayVolume = () => {
@@ -456,14 +485,115 @@ function packsToOptions(packs, pack_list) {
       }
     });
 
+    // mute toggle button
+    mute_toggle_group.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      ipcRenderer.send("toggle-mute");
+    };
+
+    function renderHotkey(hotkey) {
+      hotkey_button.classList.remove('recording-hotkey');
+      hotkey_button.innerHTML = '';
+      if (!hotkey || hotkey === '-') {
+        hotkey_button.classList.add('recording-hotkey');
+        hotkey_button.textContent = 'Click to set';
+        return;
+      }
+      hotkey.split('+').forEach((part, i) => {
+        if (i > 0) {
+          const sep = document.createElement('span');
+          sep.className = 'key-sep';
+          sep.textContent = '+';
+          hotkey_button.appendChild(sep);
+        }
+        const cap = document.createElement('span');
+        cap.className = 'key-cap';
+        cap.textContent = part;
+        hotkey_button.appendChild(cap);
+      });
+    }
+
+    // hotkey recording
+    let recordingHotkey = false;
+    hotkey_button.addEventListener('click', () => {
+      if (recordingHotkey) return;
+      recordingHotkey = true;
+      hotkey_button.classList.add('recording-hotkey');
+      hotkey_button.innerHTML = '';
+      hotkey_button.textContent = 'Press a key combo...';
+
+      function onKeyDown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // require at least one modifier
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) return;
+
+        const parts = [];
+        if (e.ctrlKey || e.metaKey) parts.push('CommandOrControl');
+        if (e.altKey) parts.push('Alt');
+        if (e.shiftKey) parts.push('Shift');
+
+        const key = e.key;
+        // skip bare modifier keys
+        if (['Control', 'Meta', 'Alt', 'Shift'].includes(key)) return;
+
+        // derive physical key name from e.code to avoid shifted chars (e.g. Shift+1 = "!" via e.key)
+        const codeMap = {
+          'Space': 'Space',
+          'Enter': 'Return', 'NumpadEnter': 'Return',
+          'Escape': 'Escape', 'Tab': 'Tab',
+          'Backspace': 'Backspace', 'Delete': 'Delete',
+          'ArrowUp': 'Up', 'ArrowDown': 'Down', 'ArrowLeft': 'Left', 'ArrowRight': 'Right',
+          'Home': 'Home', 'End': 'End', 'PageUp': 'PageUp', 'PageDown': 'PageDown',
+          'Insert': 'Insert', 'PrintScreen': 'PrintScreen',
+          'NumLock': 'NumLock', 'CapsLock': 'CapsLock', 'ScrollLock': 'ScrollLock',
+        };
+        let keyName;
+        if (codeMap[e.code]) {
+          keyName = codeMap[e.code];
+        } else if (e.code.startsWith('Key')) {
+          keyName = e.code.slice(3).toUpperCase();
+        } else if (e.code.startsWith('Digit')) {
+          keyName = e.code.slice(5);
+        } else if (e.code.startsWith('Numpad')) {
+          keyName = 'Num' + e.code.slice(6);
+        } else if (e.code.startsWith('F') && e.code.length <= 3) {
+          keyName = e.code;
+        } else {
+          keyName = key.length === 1 ? key.toUpperCase() : key;
+        }
+
+        parts.push(keyName);
+        const hotkey = parts.join('+');
+
+        document.removeEventListener('keydown', onKeyDown, true);
+        recordingHotkey = false;
+        renderHotkey(hotkey);
+        ipcRenderer.send('set-hotkey', hotkey);
+      }
+
+      document.addEventListener('keydown', onKeyDown, true);
+    });
+
+    // listen for hotkey updates
+    ipcRenderer.on("mute-hotkey", (_event, hotkey) => {
+      renderHotkey(hotkey);
+    });
+
     // warn about muted mechvibes
     ipcRenderer.on("mechvibes-mute-status", (_event, enabled) => {
+      mute_toggle.checked = enabled;
       if(enabled){
         mechvibes_muted.classList.remove("hidden");
       }else{
         mechvibes_muted.classList.add("hidden");
       }
     });
+
+    // query initial mute state and hotkey (after listeners are registered)
+    ipcRenderer.send("get-mute-status");
 
     ipcRenderer.on("ava-toggle", (_event, enabled) => {
       active_volume = enabled;
@@ -511,6 +641,11 @@ function packsToOptions(packs, pack_list) {
         keycode: keycode,
       }
       playSound(event, volume.value);
+    });
+
+    ipcRenderer.on('clear-pressed-keys', () => {
+      pressed_keys = {};
+      app_logo.classList.remove('pressed');
     });
 
     // on random button click
