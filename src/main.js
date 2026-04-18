@@ -480,13 +480,18 @@ if (!gotTheLock) {
 
     let parsedMuteHotkey = parseHotkey(store.get(MUTE_HOTKEY_STORE_ID, DEFAULT_MUTE_HOTKEY));
 
+    // Cache mute state in memory to avoid repeated disk reads (conf v9 reads disk on every get).
+    // This also prevents key-repeat from toggling mute multiple times while the hotkey is held.
+    let muteState = mute.is_enabled;
+    let hotkeyPhysicallyDown = false;
+
     iohook.start();
 
     let volume = -1; // set to an out-of-bound value to force an update on first run
     let system_mute = false;
     let system_volume_error = false;
     let sys_check_interval = setInterval(() => {
-      if(!mute.is_enabled){
+      if(!muteState){
         getVolume().then((v) => {
           if(v !== volume){
             volume = v;
@@ -523,25 +528,37 @@ if (!gotTheLock) {
 
     iohook.on('keydown', (event) => {
       if (matchesHotkey(event, parsedMuteHotkey)) {
-        toggleMute();
+        if (!hotkeyPhysicallyDown) {
+          hotkeyPhysicallyDown = true;
+          toggleMute();
+        }
         return;
       }
-      if (!mute.is_enabled) {
+      if (!muteState) {
         win.webContents.send("keydown", event);
       }
     });
 
     iohook.on('keyup', (event) => {
-      if (!mute.is_enabled) {
+      if (parsedMuteHotkey && parsedMuteHotkey.keycodes.includes(event.keycode)) {
+        hotkeyPhysicallyDown = false;
+      }
+      if (!muteState) {
         win.webContents.send("keyup", event);
       }
     });
 
     function toggleMute() {
-      mute.toggle();
+      muteState = !muteState;
+      if (muteState) {
+        mute.enable();
+      } else {
+        mute.disable();
+      }
+      log.info(`Mute toggled: ${muteState}`);
       if (win && !win.isDestroyed()) {
-        win.webContents.send("mechvibes-mute-status", mute.is_enabled);
-        if (mute.is_enabled) {
+        win.webContents.send("mechvibes-mute-status", muteState);
+        if (muteState) {
           win.webContents.send("clear-pressed-keys");
         }
       }
@@ -596,7 +613,7 @@ if (!gotTheLock) {
         {
           label: 'Mute',
           type: 'checkbox',
-          checked: mute.is_enabled,
+          checked: muteState,
           click: function () {
             toggleMute();
           },
@@ -678,8 +695,23 @@ if (!gotTheLock) {
     });
 
     ipcMain.on("get-mute-status", (event) => {
-      event.reply("mechvibes-mute-status", mute.is_enabled);
+      event.reply("mechvibes-mute-status", muteState);
       event.reply("mute-hotkey", store.get(MUTE_HOTKEY_STORE_ID, DEFAULT_MUTE_HOTKEY));
+    });
+
+    ipcMain.on("get-startup-status", (event) => {
+      event.reply("startup-status", startup_handler.is_enabled);
+    });
+
+    ipcMain.on("set-startup", (_event, enabled) => {
+      if (enabled) {
+        startup_handler.enable();
+      } else {
+        startup_handler.disable();
+      }
+      if (tray !== null) {
+        tray.setContextMenu(buildContextMenu());
+      }
     });
 
     ipcMain.on("set-hotkey", (_event, hotkey) => {
@@ -690,6 +722,7 @@ if (!gotTheLock) {
       }
       store.set(MUTE_HOTKEY_STORE_ID, hotkey);
       parsedMuteHotkey = parsed;
+      hotkeyPhysicallyDown = false;
       log.info(`Mute hotkey updated to: ${hotkey}`);
     });
 

@@ -324,6 +324,8 @@ function packsToOptions(packs, pack_list) {
     const tray_icon_toggle_group = document.getElementById("tray_icon_toggle_group");
     const theme_toggle = document.getElementById("theme_toggle");
     const theme_toggle_group = document.getElementById("theme_toggle_group");
+    const startup_toggle = document.getElementById("startup_toggle");
+    const startup_toggle_group = document.getElementById("startup_toggle_group");
     const mute_toggle = document.getElementById("mute_toggle");
     const mute_toggle_group = document.getElementById("mute_toggle_group");
     const hotkey_button = document.getElementById("hotkey_button");
@@ -416,6 +418,18 @@ function packsToOptions(packs, pack_list) {
       store.set(MV_THEME_LSID, theme);
       ipcRenderer.send('set-theme', theme);
     };
+
+    // startup on boot toggle
+    ipcRenderer.on("startup-status", (_event, enabled) => {
+      startup_toggle.checked = enabled;
+    });
+    startup_toggle_group.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      startup_toggle.checked = !startup_toggle.checked;
+      ipcRenderer.send('set-startup', startup_toggle.checked);
+    };
+    ipcRenderer.send("get-startup-status");
 
     // volume
     let displayVolume = () => {
