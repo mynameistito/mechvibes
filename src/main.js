@@ -20,6 +20,7 @@ const StartupHandler = require('./utils/startup_handler');
 const StoreToggle = require('./utils/store_toggle');
 
 const SYSTRAY_ICON = path.join(__dirname, '/assets/system-tray-icon.png');
+const SYSTRAY_ICON_MUTED = path.join(__dirname, '/assets/system-tray-icon-muted.png');
 const user_dir = app.getPath("userData");
 const custom_dir = path.join(user_dir, '/custom');
 const current_pack_store_id = 'mechvibes-pack';
@@ -563,6 +564,7 @@ if (!gotTheLock) {
         }
       }
       if (tray !== null) {
+        tray.setImage(muteState ? SYSTRAY_ICON_MUTED : SYSTRAY_ICON);
         tray.setContextMenu(buildContextMenu());
       }
     }
@@ -664,7 +666,7 @@ if (!gotTheLock) {
       // prevent dupe tray icons
       if(tray !== null) return;
 
-      tray = new Tray(SYSTRAY_ICON);
+      tray = new Tray(muteState ? SYSTRAY_ICON_MUTED : SYSTRAY_ICON);
       tray.setToolTip('Mechvibes');
 
       const contextMenu = buildContextMenu();
