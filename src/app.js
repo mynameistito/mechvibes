@@ -141,7 +141,8 @@ async function loadPacks() {
     // get folder name
     const folder_name = path.basename(folder);
     // define if custom pack
-    const is_custom = (folder.substring(0, CUSTOM_PACKS_DIR.length) == CUSTOM_PACKS_DIR) ? true : false;
+    const normalizedCustomDir = CUSTOM_PACKS_DIR.replace(/\\/g, '/');
+    const is_custom = folder.startsWith(normalizedCustomDir);
     const is_archive = path.extname(folder) == '.zip';
 
     let config_json = null;
@@ -640,6 +641,11 @@ function packsToOptions(packs, pack_list) {
         keycode: keycode,
       }
       playSound(event, volume.value);
+    });
+
+    ipcRenderer.on('clear-pressed-keys', () => {
+      pressed_keys = {};
+      app_logo.classList.remove('pressed');
     });
 
     // on random button click

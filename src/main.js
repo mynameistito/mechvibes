@@ -11,7 +11,10 @@ const store = new Store();
 const iohook = require('iohook');
 
 // Apply saved theme before any window is created so the title bar starts correctly
-nativeTheme.themeSource = store.get('mechvibes-theme', 'system');
+function validateTheme(value) {
+  return ['system', 'light', 'dark'].includes(value) ? value : 'system';
+}
+nativeTheme.themeSource = validateTheme(store.get('mechvibes-theme', 'system'));
 
 const StartupHandler = require('./utils/startup_handler');
 const StoreToggle = require('./utils/store_toggle');
@@ -178,7 +181,6 @@ fs.ensureDirSync(custom_dir);
 
 function createWindow(show = false) {
   // Create the browser window.
-  const isDark = nativeTheme.shouldUseDarkColors;
   win = new BrowserWindow({
     name: "app", // used by logger to differentiate messages sent by different windows.
     width: 400,
@@ -188,10 +190,6 @@ function createWindow(show = false) {
     // resizable: false,
     // fullscreenable: false,
     titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: isDark ? '#1a1a1a' : '#f0f0f0',
-      symbolColor: isDark ? '#e0e0e0' : '#333333',
-    },
     webPreferences: {
       preload: path.join(__dirname, 'app.js'),
       contextIsolation: false,
@@ -203,6 +201,14 @@ function createWindow(show = false) {
 
   // remove menu bar
   win.removeMenu();
+
+  if (typeof win.setTitleBarOverlay === 'function') {
+    const isDark = nativeTheme.shouldUseDarkColors;
+    win.setTitleBarOverlay({
+      color: isDark ? '#1a1a1a' : '#f0f0f0',
+      symbolColor: isDark ? '#e0e0e0' : '#333333',
+    });
+  }
 
   // and load the index.html of the app.
   win.loadFile('./src/app.html');
@@ -452,8 +458,10 @@ if (!gotTheLock) {
       const isCtrl = mods.includes('CommandOrControl') || mods.includes('Ctrl');
       const isMeta = mods.includes('Meta') || mods.includes('Command') ||
                      (process.platform === 'darwin' && mods.includes('CommandOrControl'));
+      const keycodes = KEY_NAME_TO_CODES[keyName];
+      if (!keycodes || keycodes.length === 0) return null;
       return {
-        keycodes: KEY_NAME_TO_CODES[keyName] || [],
+        keycodes,
         ctrl: isCtrl && process.platform !== 'darwin',
         shift: mods.includes('Shift'),
         alt: mods.includes('Alt'),
@@ -533,6 +541,9 @@ if (!gotTheLock) {
       mute.toggle();
       if (win && !win.isDestroyed()) {
         win.webContents.send("mechvibes-mute-status", mute.is_enabled);
+        if (mute.is_enabled) {
+          win.webContents.send("clear-pressed-keys");
+        }
       }
       if (tray !== null) {
         tray.setContextMenu(buildContextMenu());
@@ -672,8 +683,13 @@ if (!gotTheLock) {
     });
 
     ipcMain.on("set-hotkey", (_event, hotkey) => {
+      const parsed = parseHotkey(hotkey);
+      if (!parsed) {
+        log.warn(`Rejecting unsupported hotkey: ${hotkey}`);
+        return;
+      }
       store.set(MUTE_HOTKEY_STORE_ID, hotkey);
-      parsedMuteHotkey = parseHotkey(hotkey);
+      parsedMuteHotkey = parsed;
       log.info(`Mute hotkey updated to: ${hotkey}`);
     });
 

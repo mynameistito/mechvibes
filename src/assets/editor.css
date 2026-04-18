@@ -228,6 +228,7 @@ body.dark .divider {
 }
 
 body.dark input[type="text"],
+body.dark input[type="number"],
 body.dark select {
   background-color: #242424;
   color: #e0e0e0;
