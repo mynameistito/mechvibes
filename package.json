@@ -1,12 +1,12 @@
 {
   "name": "mechvibes",
   "productName": "Mechvibes",
-  "version": "v2.3.6",
+  "version": "v2.3.7",
   "description": "Play mechanical keyboard sounds as you type.",
   "repository": "https://github.com/hainguyents13/mechvibes",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron .",
+    "dev": "electron .",
     "build:all": "electron-builder -wml",
     "build:win": "electron-builder -w",
     "build:mac": "electron-builder -m",
