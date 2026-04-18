@@ -3,6 +3,13 @@
 
 # MechvibesDX - The next version of Mechvibes
 
+> [!NOTE]
+> **This is a personal fork** of [Mechvibes](https://github.com/hainguyents13/mechvibes) by [Hai Nguyen (hainguyents13)](https://github.com/hainguyents13). All credit for the original concept, architecture, and implementation goes to him and the Mechvibes community.
+
+### Key Changes
+- Dark Mode
+- Mute Toggle Key
+- Typescript (in the future probably)
 
 I've been working on **MechvibesDX** - a complete rewrite of Mechvibes with significant improvements to performance, compatibility, and user experience. You can check it out at the new repository: [mechvibes-dx](https://github.com/hainguyents13/mechvibes-dx)
 
