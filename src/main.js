@@ -24,6 +24,9 @@ const current_pack_store_id = 'mechvibes-pack';
 const mute = new StoreToggle("mechvibes-muted", false);
 const start_minimized = new StoreToggle("mechvibes-start-minimized", false);
 const active_volume = new StoreToggle("mechvibes-active-volume", true);
+
+const MUTE_HOTKEY_STORE_ID = 'mechvibes-mute-hotkey';
+const DEFAULT_MUTE_HOTKEY = 'CommandOrControl+Shift+M';
 const storage_prompted = new StoreToggle("mechvibes-migrate-asked", false);
 
 // Remote debugging defaults
@@ -179,7 +182,7 @@ function createWindow(show = false) {
   win = new BrowserWindow({
     name: "app", // used by logger to differentiate messages sent by different windows.
     width: 400,
-    height: 600,
+    height: 720,
     backgroundThrottling: false,
     webSecurity: false,
     // resizable: false,
@@ -420,9 +423,56 @@ if (!gotTheLock) {
       win = createWindow(true);
     }
 
-    if(!mute.is_enabled){
-      iohook.start();
+    // Build accelerator name → iohook keycode map (platform-aware)
+    const KEY_NAME_TO_CODES = {
+      '1':[2],'2':[3],'3':[4],'4':[5],'5':[6],'6':[7],'7':[8],'8':[9],'9':[10],'0':[11],
+      'A':[30],'B':[48],'C':[46],'D':[32],'E':[18],'F':[33],'G':[34],'H':[35],'I':[23],
+      'J':[36],'K':[37],'L':[38],'M':[50],'N':[49],'O':[24],'P':[25],'Q':[16],'R':[19],
+      'S':[31],'T':[20],'U':[22],'V':[47],'W':[17],'X':[45],'Y':[21],'Z':[44],
+      'F1':[59],'F2':[60],'F3':[61],'F4':[62],'F5':[63],'F6':[64],
+      'F7':[65],'F8':[66],'F9':[67],'F10':[68],'F11':[87],'F12':[88],
+      'Space':[57],'Tab':[15],'Backspace':[14],'Return':[28],'Escape':[1],'CapsLock':[58],
+      'PrintScreen':[3639],'ScrollLock':[70],
+      ...(process.platform === 'win32' ? {
+        'Up':[61000],'Down':[61008],'Left':[61003],'Right':[61005],
+        'Home':[60999],'End':[61007],'PageUp':[61001],'PageDown':[61009],
+        'Insert':[61010],'Delete':[61011],
+      } : {
+        'Up':[57416],'Down':[57424],'Left':[57419],'Right':[57421],
+        'Home':[3655],'End':[3663],'PageUp':[3657],'PageDown':[3665],
+        'Insert':[3666],'Delete':[3667],
+      }),
+    };
+
+    function parseHotkey(hotkey) {
+      if (!hotkey || hotkey === '-') return null;
+      const parts = hotkey.split('+');
+      const keyName = parts[parts.length - 1];
+      const mods = parts.slice(0, -1);
+      const isCtrl = mods.includes('CommandOrControl') || mods.includes('Ctrl');
+      const isMeta = mods.includes('Meta') || mods.includes('Command') ||
+                     (process.platform === 'darwin' && mods.includes('CommandOrControl'));
+      return {
+        keycodes: KEY_NAME_TO_CODES[keyName] || [],
+        ctrl: isCtrl && process.platform !== 'darwin',
+        shift: mods.includes('Shift'),
+        alt: mods.includes('Alt'),
+        meta: isMeta,
+      };
     }
+
+    function matchesHotkey(event, parsed) {
+      if (!parsed || parsed.keycodes.length === 0) return false;
+      return parsed.keycodes.includes(event.keycode) &&
+             !!event.ctrlKey === parsed.ctrl &&
+             !!event.shiftKey === parsed.shift &&
+             !!event.altKey === parsed.alt &&
+             !!event.metaKey === parsed.meta;
+    }
+
+    let parsedMuteHotkey = parseHotkey(store.get(MUTE_HOTKEY_STORE_ID, DEFAULT_MUTE_HOTKEY));
+
+    iohook.start();
 
     let volume = -1; // set to an out-of-bound value to force an update on first run
     let system_mute = false;
@@ -464,29 +514,36 @@ if (!gotTheLock) {
     // so it's not a good idea to spam the system with requests.
 
     iohook.on('keydown', (event) => {
-      win.webContents.send("keydown", event);
+      if (matchesHotkey(event, parsedMuteHotkey)) {
+        toggleMute();
+        return;
+      }
+      if (!mute.is_enabled) {
+        win.webContents.send("keydown", event);
+      }
     });
 
     iohook.on('keyup', (event) => {
-      win.webContents.send("keyup", event);
+      if (!mute.is_enabled) {
+        win.webContents.send("keyup", event);
+      }
     });
 
-    function createTrayIcon(){
-      // prevent dupe tray icons
-      if(tray !== null) return;
+    function toggleMute() {
+      mute.toggle();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("mechvibes-mute-status", mute.is_enabled);
+      }
+      if (tray !== null) {
+        tray.setContextMenu(buildContextMenu());
+      }
+    }
 
-      // start tray icon
-      tray = new Tray(SYSTRAY_ICON);
-
-      // tray icon tooltip
-      tray.setToolTip('Mechvibes');
-
-      // context menu when hover on tray icon
-      const contextMenu = Menu.buildFromTemplate([
+    function buildContextMenu() {
+      return Menu.buildFromTemplate([
         {
           label: 'Mechvibes',
           click: function () {
-            // show app on click
             if (process.platform === 'darwin') {
               app.dock.show();
             }
@@ -530,13 +587,7 @@ if (!gotTheLock) {
           type: 'checkbox',
           checked: mute.is_enabled,
           click: function () {
-            mute.toggle();
-            if(!mute.is_enabled){
-              iohook.start();
-            }else{
-              iohook.stop();
-            }
-            win.webContents.send("mechvibes-mute-status", mute.is_enabled);
+            toggleMute();
           },
         },
         {
@@ -572,24 +623,30 @@ if (!gotTheLock) {
         {
           label: 'Quit',
           click: function () {
-            // stop system check interval, because it's an external program, and
-            // it doesn't know how to handle shutdowns.
             clearInterval(sys_check_interval);
-            // quit
             app.isQuiting = true;
             app.quit();
           },
         },
       ]);
+    }
+
+
+    function createTrayIcon(){
+      // prevent dupe tray icons
+      if(tray !== null) return;
+
+      tray = new Tray(SYSTRAY_ICON);
+      tray.setToolTip('Mechvibes');
+
+      const contextMenu = buildContextMenu();
 
       // On macOS double click doesn't work if we use tray.setContextMenu(), so we'll do it manually.
       if(process.platform == "darwin"){
-        // click on tray icon, show context menu
         tray.on('click', () => {
-          tray.popUpContextMenu(contextMenu);
+          tray.popUpContextMenu(buildContextMenu());
         });
 
-        // right click on tray icon, show the app
         tray.on("right-click", () => {
           app.dock.show();
           win.show();
@@ -597,13 +654,28 @@ if (!gotTheLock) {
         })
       }else{
         tray.setContextMenu(contextMenu);
-        // double click on tray icon, show the app
         tray.on("double-click", () => {
           win.show();
           win.focus();
         })
       }
     }
+
+
+    ipcMain.on("toggle-mute", () => {
+      toggleMute();
+    });
+
+    ipcMain.on("get-mute-status", (event) => {
+      event.reply("mechvibes-mute-status", mute.is_enabled);
+      event.reply("mute-hotkey", store.get(MUTE_HOTKEY_STORE_ID, DEFAULT_MUTE_HOTKEY));
+    });
+
+    ipcMain.on("set-hotkey", (_event, hotkey) => {
+      store.set(MUTE_HOTKEY_STORE_ID, hotkey);
+      parsedMuteHotkey = parseHotkey(hotkey);
+      log.info(`Mute hotkey updated to: ${hotkey}`);
+    });
 
     ipcMain.on("set-theme", (_event, theme) => {
       if (!['system', 'light', 'dark'].includes(theme)) return;
