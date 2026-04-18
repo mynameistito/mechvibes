@@ -101,7 +101,7 @@ a:hover {
   -webkit-transition: 0.2s;
   transition: opacity 0.2s; */
   border-radius: 5px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
 /* Mouse-over effects */
@@ -250,7 +250,7 @@ table {
 
 .warning-levels{
   position: relative;
-  top:-17px;
+  top:-5px;
   left:2px;
 
   display: flex;
