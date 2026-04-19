@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, shell, ipcMain, nativeTheme } from 'electron';
+import { app, BrowserWindow, Tray, Menu, shell, ipcMain, nativeTheme, powerMonitor, dialog } from 'electron';
 import { getVolume, getMute } from 'easy-volume';
 import * as path from 'path';
 import * as os from 'os';
@@ -8,6 +8,10 @@ import Store from 'electron-store';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
 import type { UiohookKeyboardEvent } from 'uiohook-napi';
 import { TaggedError, Result } from 'better-result';
+import StartupHandler from './utils/startup_handler.js';
+import StoreToggle from './utils/store_toggle.js';
+import * as IpcServer from './utils/ipc.js';
+import remoteTransportFactory from './libs/electron-log/transports/remote.js';
 
 // NOTE: Do not update electron-log, as we have a custom transport override which may not be compatible with newer versions.
 
@@ -20,21 +24,6 @@ function validateTheme(value: unknown): 'system' | 'light' | 'dark' {
 }
 nativeTheme.themeSource = validateTheme(store.get('mechvibes-theme', 'system'));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const StartupHandler = require('./utils/startup_handler') as new (app: Electron.App) => {
-  was_started_at_login: boolean;
-  is_enabled: boolean;
-  enable(): void;
-  disable(): void;
-  toggle(): void;
-};
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const StoreToggle = require('./utils/store_toggle') as new (key: string, defaultValue: boolean) => {
-  is_enabled: boolean;
-  enable(): void;
-  disable(): void;
-  toggle(): void;
-};
 
 const SYSTRAY_ICON = path.join(__dirname, '../src/assets/system-tray-icon.png');
 const SYSTRAY_ICON_MUTED = path.join(__dirname, '../src/assets/system-tray-icon-muted.png');
@@ -50,12 +39,6 @@ const MUTE_HOTKEY_STORE_ID = 'mechvibes-mute-hotkey';
 const DEFAULT_MUTE_HOTKEY = 'CommandOrControl+Shift+M';
 const storage_prompted = new StoreToggle('mechvibes-migrate-asked', false);
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const IpcServer = require('./utils/ipc') as {
-  setRemoteUrl(url: string): void;
-  identify(userInfo: unknown): Promise<{ success: boolean; identifier?: string }>;
-  validate(identifier: string, userInfo: unknown): Promise<{ success: boolean }>;
-};
 
 interface DebugState {
   enabled: boolean;
@@ -79,8 +62,9 @@ const debug: DebugState = {
     };
 
     if (this.identifier === undefined) {
-      const json = await IpcServer.identify(userInfo);
-      if (json.success) {
+      const identifyResult = await IpcServer.identify(userInfo);
+      if (Result.isOk(identifyResult) && identifyResult.value.success) {
+        const json = identifyResult.value;
         this.identifier = json.identifier;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         fs.writeJsonSync(debugConfigFile, { enabled: true, identifier: json.identifier });
@@ -99,7 +83,7 @@ const debug: DebugState = {
         }
       } else {
         this.enabled = false;
-        console.log(json);
+        console.log(identifyResult);
       }
     } else {
       console.log('enabling early');
@@ -107,8 +91,8 @@ const debug: DebugState = {
       (log.transports as any).remote.client.identifier = this.identifier;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (log.transports as any).remote.level = 'silly';
-      const json = await IpcServer.validate(this.identifier, userInfo);
-      if (!json.success) {
+      const validateResult = await IpcServer.validate(this.identifier, userInfo);
+      if (!Result.isOk(validateResult) || !validateResult.value.success) {
         console.log('Failed validation');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (log.transports as any).remote.level = false;
@@ -134,10 +118,10 @@ const debug: DebugState = {
     }
   },
 };
-IpcServer.setRemoteUrl(debug.remoteUrl);
+void IpcServer.setRemoteUrl(debug.remoteUrl);
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-(log.transports as any).remote = require('./libs/electron-log/transports/remote')(log, debug.remoteUrl);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(log.transports as any).remote = remoteTransportFactory(log, debug.remoteUrl);
 
 for (const transportName in log.transports) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -832,7 +816,6 @@ if (!gotTheLock) {
     log.info('App is ready and has been initialized');
 
     if (process.platform === 'darwin') {
-      const { powerMonitor } = require('electron') as typeof import('electron');
       powerMonitor.on('shutdown', () => {
         app.quit();
       });
@@ -843,7 +826,6 @@ if (!gotTheLock) {
       const old_custom_dir = path.join(home_dir, '/mechvibes_custom');
       if (fs.existsSync(old_custom_dir)) {
         log.debug('Old custom directory exists, prompting user for migration...');
-        const { dialog } = require('electron') as typeof import('electron');
         const response = dialog.showMessageBoxSync({
           type: 'question',
           buttons: ['Yes', 'Not right now', "Don't ask again"],

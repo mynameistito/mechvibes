@@ -3,7 +3,10 @@ import { ipcRenderer } from 'electron';
 
 const BASE_URL = 'https://www.mechvibes.com/sound-packs';
 
-const CUSTOM_PACKS_DIR: string = (require('electron').remote as { getGlobal: (key: string) => string }).getGlobal('custom_dir');
+let CUSTOM_PACKS_DIR = '';
+ipcRenderer.invoke('get-globals').then((globals: { custom_dir: string }) => {
+  CUSTOM_PACKS_DIR = globals.custom_dir;
+}).catch(console.error);
 
 const errorTranslation: Record<number, string> = {
   400: 'INVREQ', 401: 'UNAUTH', 402: 'PAYMENT', 403: 'FORBID',

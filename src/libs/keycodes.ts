@@ -1,4 +1,4 @@
-import remapper from '../utils/remapper';
+import remapper from '../utils/remapper.js';
 
 export type KeycodeMap = Record<number, string | null>;
 export type Platform = 'darwin' | 'win32' | 'linux';

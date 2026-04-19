@@ -2,10 +2,12 @@ import { app } from 'electron';
 import http from 'http';
 import https from 'https';
 import { URL } from 'url';
+import { createRequire } from 'module';
 import { TaggedError } from 'better-result';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const transform = require('electron-log/src/transform');
+const _require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const transform = _require('electron-log/src/transform') as any;
 
 export class NetworkError extends TaggedError('network')<{ message: string; url?: string }>() {}
 

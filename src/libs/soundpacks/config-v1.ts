@@ -1,9 +1,9 @@
 import { Howl } from 'howler';
-import { keycodesRemap } from '../keycodes';
-import { GetSoundpackFile } from './file-manager';
-import { SoundpackError } from './soundpack-config';
+import { keycodesRemap } from '../keycodes.js';
+import { GetSoundpackFile } from './file-manager.js';
+import { SoundpackError } from './soundpack-config.js';
 import { Result } from 'better-result';
-import type { ISoundpackConfig, SoundpackMeta, KeyEvent } from './soundpack-config';
+import type { ISoundpackConfig, SoundpackMeta, KeyEvent } from './soundpack-config.js';
 
 interface V1Config {
   name: string;

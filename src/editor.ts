@@ -3,11 +3,11 @@ import fs from 'fs';
 import path from 'path';
 import { shell } from 'electron';
 import Store from 'electron-store';
-import remapper from './utils/remapper';
-import { win32 as layoutWin32, darwin as layoutDarwin, linux as layoutLinux, sizes } from './libs/layouts';
-import { win32 as kcWin32, darwin as kcDarwin, linux as kcLinux } from './libs/keycodes';
-import type { Layout } from './libs/layouts';
-import type { KeycodeMap, Platform, KeyDefines } from './libs/keycodes';
+import remapper from './utils/remapper.js';
+import { win32 as layoutWin32, darwin as layoutDarwin, linux as layoutLinux, sizes } from './libs/layouts.js';
+import { win32 as kcWin32, darwin as kcDarwin, linux as kcLinux } from './libs/keycodes.js';
+import type { Layout } from './libs/layouts.js';
+import type { KeycodeMap, Platform, KeyDefines } from './libs/keycodes.js';
 export {};
 
 // jQuery is loaded via <script> tag in editor.html before this module runs

@@ -1,17 +1,13 @@
-'use strict';
-
 import Store from 'electron-store';
 import { Howler } from 'howler';
 import { shell, ipcRenderer } from 'electron';
 import * as fs from 'fs';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { sync: globSync } = require('glob') as { sync: (pattern: string) => string[] };
 import * as path from 'path';
-import { GetFileFromArchive } from './libs/soundpacks/file-manager';
-import { SoundpackConfigV1 } from './libs/soundpacks/config-v1';
-import { SoundpackConfigV2 } from './libs/soundpacks/config-v2';
+import { GetFileFromArchive } from './libs/soundpacks/file-manager.js';
+import { SoundpackConfigV1 } from './libs/soundpacks/config-v1.js';
+import { SoundpackConfigV2 } from './libs/soundpacks/config-v2.js';
 import { Result } from 'better-result';
-import type { ISoundpackConfig, SoundpackMeta } from './libs/soundpacks/soundpack-config';
+import type { ISoundpackConfig, SoundpackMeta } from './libs/soundpacks/soundpack-config.js';
 
 const store = new Store();
 
@@ -102,9 +98,15 @@ function unloadAllPacks() {
   });
 }
 
+function listDir(dir: string): string[] {
+  const normalized = dir.replace(/\\/g, '/').replace(/\/$/, '');
+  if (!fs.existsSync(normalized)) return [];
+  return fs.readdirSync(normalized).map((f) => normalized + '/' + f);
+}
+
 async function loadPacks() {
-  const official_packs = globSync(OFFICIAL_PACKS_DIR.replace(/\\/g, '/') + '/*');
-  const custom_packs = globSync(CUSTOM_PACKS_DIR.replace(/\\/g, '/') + '/*');
+  const official_packs = listDir(OFFICIAL_PACKS_DIR);
+  const custom_packs = listDir(CUSTOM_PACKS_DIR);
   const folders = [...official_packs, ...custom_packs];
 
   log.info(`Loading ${folders.length} packs`);
