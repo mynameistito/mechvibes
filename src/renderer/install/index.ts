@@ -5,7 +5,7 @@ import { ipcRenderer } from 'electron';
 const BASE_URL = 'https://www.mechvibes.com/sound-packs';
 
 let CUSTOM_PACKS_DIR = '';
-ipcRenderer.invoke('get-globals').then((globals: { custom_dir: string }) => {
+const getGlobalsPromise = ipcRenderer.invoke('get-globals').then((globals: { custom_dir: string }) => {
   CUSTOM_PACKS_DIR = globals.custom_dir;
 }).catch(console.error);
 
@@ -60,7 +60,9 @@ ipcRenderer.on('install-pack', (_event, packId: string) => {
   const yesBtn = document.getElementById('answer-yes')!;
   const noBtn = document.getElementById('answer-no')!;
 
-  yesBtn.onclick = () => {
+  yesBtn.onclick = async () => {
+    await getGlobalsPromise;
+
     const progStatus = document.getElementById('status-text')!;
     const progSection = document.getElementById('prog')!;
     const progBar = document.getElementById('prog-bar')!;
@@ -82,22 +84,28 @@ ipcRenderer.on('install-pack', (_event, packId: string) => {
 
       for (let i = 0; i < installation.files.length; i++) {
         const file = installation.files[i];
-        progStatus.innerText = `Downloading ${file}...`;
-        const request = await fetch(`${PACK_URL}/${file}`);
-        if (!request.ok) {
-          error = { status: request.status, file };
-          break;
-        }
-        const blob = await request.blob();
-        const arrayBuffer = await blob.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const destPath = path.resolve(INSTALL_DIR, file);
-        if (!destPath.startsWith(path.resolve(INSTALL_DIR) + path.sep)) {
+        try {
+          progStatus.innerText = `Downloading ${file}...`;
+          const request = await fetch(`${PACK_URL}/${file}`);
+          if (!request.ok) {
+            error = { status: request.status, file };
+            break;
+          }
+          const blob = await request.blob();
+          const arrayBuffer = await blob.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const destPath = path.resolve(INSTALL_DIR, file);
+          if (!destPath.startsWith(path.resolve(INSTALL_DIR) + path.sep)) {
+            error = { status: 0, file };
+            break;
+          }
+          fs.mkdirSync(path.dirname(destPath), { recursive: true });
+          fs.writeFileSync(destPath, buffer);
+          progBar.style.width = `${((i + 1) / installation.files.length) * 100}%`;
+        } catch {
           error = { status: 0, file };
           break;
         }
-        fs.writeFileSync(destPath, buffer);
-        progBar.style.width = `${((i + 1) / installation.files.length) * 100}%`;
       }
 
       if (error !== null) {

@@ -41,6 +41,10 @@ export function initializeDebugAndLogging(
         const identifyResult = await IpcServer.identify(userInfo);
         if (Result.isOk(identifyResult) && identifyResult.value.success) {
           const json = identifyResult.value;
+          if (!json.identifier) {
+            this.enabled = false;
+            return;
+          }
           this.identifier = json.identifier;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fs.writeJsonSync(debugConfigFile, { enabled: true, identifier: json.identifier });
@@ -54,7 +58,7 @@ export function initializeDebugAndLogging(
             level: (log.transports as any).remote.level,
             identifier: debug.identifier,
           };
-          if (state.debugWindow !== null) {
+          if (state.debugWindow !== null && !state.debugWindow.isDestroyed()) {
             state.debugWindow.webContents.send('debug-update', options);
           }
         } else {
@@ -74,7 +78,7 @@ export function initializeDebugAndLogging(
           fs.removeSync(debugConfigFile);
         }
       }
-      if (state.win !== null) {
+      if (state.win !== null && !state.win.isDestroyed()) {
         state.win.webContents.send('debug-in-use', this.enabled);
       }
     },
@@ -86,7 +90,7 @@ export function initializeDebugAndLogging(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (log.transports as any).remote.client.identifier = undefined;
       fs.removeSync(debugConfigFile);
-      if (state.win !== null) {
+      if (state.win !== null && !state.win.isDestroyed()) {
         state.win.webContents.send('debug-in-use', false);
       }
     },

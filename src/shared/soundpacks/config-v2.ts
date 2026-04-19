@@ -14,7 +14,6 @@ interface V2Config {
   version?: number;
 }
 
-type SingleAudio = Howl;
 type MultiAudio = Record<string, Howl>;
 
 export class SoundpackConfigV2 implements ISoundpackConfig {
@@ -30,7 +29,7 @@ export class SoundpackConfigV2 implements ISoundpackConfig {
   readonly is_custom: boolean;
   readonly config_version = 2;
   readonly version = 2;
-  audio?: SingleAudio | MultiAudio;
+  audio?: MultiAudio;
 
   constructor(config: V2Config, meta: SoundpackMeta) {
     this.name = config.name;
@@ -53,30 +52,29 @@ export class SoundpackConfigV2 implements ISoundpackConfig {
 
     const resolveSound = (sound: string): string => {
       if (!sound.includes('{')) return sound;
-      const range = sound.match(/\{(.+?)\}/)?.[0];
-      if (!range) return sound;
-      const [lo, hi] = range.slice(1, -1).split('-').map(Number);
-      const n = Math.floor(Math.random() * (hi - lo + 1) + lo);
-      return sound.replace(range, String(n));
+      const rangeMatch = sound.match(/\{(-?\d+)-(-?\d+)\}/);
+      if (!rangeMatch) return sound;
+      const lo = Number(rangeMatch[1]);
+      const hi = Number(rangeMatch[2]);
+      if (!Number.isFinite(lo) || !Number.isFinite(hi)) return sound;
+      const [low, high] = lo <= hi ? [lo, hi] : [hi, lo];
+      const n = Math.floor(Math.random() * (high - low + 1) + low);
+      return sound.replace(rangeMatch[0], String(n));
     };
 
     for (const kc of Object.keys(keycodesFill(this.defines))) {
       const upKey = `${kc}-up`;
-      this.defines[kc] = resolveSound(this.defines[kc] ?? this.sound);
-      this.defines[upKey] = resolveSound(this.defines[upKey] ?? this.soundup);
+      this.defines[kc] = resolveSound(this.defines[kc] || this.sound);
+      this.defines[upKey] = resolveSound(this.defines[upKey] || this.soundup);
     }
   }
 
   LoadSounds(): Promise<Result<void, SoundpackError>> {
     return new Promise((resolve) => {
       const cleanup = () => {
-        if (this.key_define_type === 'single') {
-          (this.audio as SingleAudio | undefined)?.unload();
-        } else if (this.key_define_type === 'multi') {
-          if (this.audio) {
-            for (const kc of Object.keys(this.audio as MultiAudio)) {
-              (this.audio as MultiAudio)[kc].unload();
-            }
+        if (this.audio) {
+          for (const kc of Object.keys(this.audio as MultiAudio)) {
+            (this.audio as MultiAudio)[kc].unload();
           }
         }
         delete this.audio;
@@ -95,21 +93,7 @@ export class SoundpackConfigV2 implements ISoundpackConfig {
         audio.once('loaderror', (_, e) => rej(e));
       });
 
-      if (this.key_define_type === 'single') {
-        const fileResult = GetSoundpackFile(this.abs_path, this.sound);
-        if (!Result.isOk(fileResult)) {
-          clearTimeout(timeout);
-          resolve(Result.err(new SoundpackError({ message: fileResult.error.message })));
-          return;
-        }
-        const audio = new Howl({ src: [fileResult.value], sprite: keycodesRemap(this.defines) as Record<string, [number, number]> });
-        waitForLoad(audio).then(() => {
-          clearTimeout(timeout);
-          this.audio = audio;
-          resolve(Result.ok(undefined));
-        }).catch((e: unknown) => { clearTimeout(timeout); fail(String(e)); });
-
-      } else if (this.key_define_type === 'multi') {
+      if (this.key_define_type === 'single' || this.key_define_type === 'multi') {
         const sound_data: Record<string, { src: string[] }> = {};
         for (const kc of Object.keys(this.defines)) {
           if (this.defines[kc]) {
@@ -146,26 +130,15 @@ export class SoundpackConfigV2 implements ISoundpackConfig {
   HandleEvent(event: KeyEvent): void {
     const keycode = event.type === 'keyup' ? `${event.keycode}-up` : `${event.keycode}`;
     const sound_id = `keycode-${keycode}`;
-    const play_type = this.key_define_type || 'single';
-    const sound = play_type === 'single'
-      ? (this.audio as SingleAudio)
-      : (this.audio as MultiAudio)?.[sound_id];
+    const sound = (this.audio as MultiAudio)?.[sound_id];
     if (!sound) return;
-    if (play_type === 'single') {
-      (sound as SingleAudio).play(sound_id);
-    } else {
-      (sound as Howl).play();
-    }
+    (sound as Howl).play();
   }
 
   UnloadSounds(): void {
     if (!this.audio) return;
-    if (this.key_define_type === 'single') {
-      (this.audio as SingleAudio).unload();
-    } else {
-      for (const kc of Object.keys(this.audio as MultiAudio)) {
-        (this.audio as MultiAudio)[kc].unload();
-      }
+    for (const kc of Object.keys(this.audio as MultiAudio)) {
+      (this.audio as MultiAudio)[kc].unload();
     }
     delete this.audio;
   }

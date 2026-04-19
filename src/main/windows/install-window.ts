@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
 import type { AppState } from '../app-state.js';
 import { fileURLToPath } from 'url';
@@ -20,7 +20,7 @@ export function openInstallWindow(packId: string, state: AppState): void {
   });
 
   state.installer.removeMenu();
-  state.installer.loadFile('./src/renderer/install/index.html');
+  state.installer.loadFile(path.join(app.getAppPath(), 'src', 'renderer', 'install', 'index.html'));
 
   state.installer.webContents.on('did-finish-load', () => {
     state.installer!.webContents.send('install-pack', packId);

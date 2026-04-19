@@ -26,6 +26,9 @@ export interface RemoteTransport {
   clear: () => never;
 }
 
+const MAX_RESPONSE_BYTES = 64 * 1024;
+const REQUEST_TIMEOUT_MS = 30000;
+
 function serializeData(data: unknown[], maxDepth: number): unknown[] {
   function limitDepth(value: unknown, depth: number): unknown {
     if (depth <= 0) return '[Object]';
@@ -59,24 +62,90 @@ export function remoteTransportFactory(electronLog: ElectronLog, defaultUrl: str
       variables: message.variables,
     });
 
-    electronLog.variables.sender = 'log.remote › sending › ' + message.variables.sender;
-    electronLog.processMessage(
-      { data, level: 'info' },
-      { transports: { file: (electronLog.transports as Record<string, unknown>)['file'] } },
-    );
-    electronLog.variables.sender = 'main';
+    try {
+      electronLog.variables.sender = 'log.remote › sending › ' + message.variables.sender;
+      electronLog.processMessage(
+        { data, level: 'info' },
+        { transports: { file: (electronLog.transports as Record<string, unknown>)['file'] } },
+      );
+    } finally {
+      electronLog.variables.sender = 'main';
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(t.url);
+    } catch {
+      handleError(new Error(`Invalid URL: ${t.url}`));
+      return;
+    }
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      handleError(new Error(`Unsupported protocol: ${parsedUrl.protocol}`));
+      return;
+    }
 
     const request = post(t.url, t.requestOptions, Buffer.from(body, 'utf8'));
 
+    request.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      request.destroy(new Error('Request timed out'));
+    });
+
     request.on('response', (response: http.IncomingMessage) => {
-      let responseData = '';
+      let responseBytes = 0;
       response.setEncoding('utf8');
-      response.on('data', (chunk: string) => { responseData += chunk; });
+      response.on('data', (chunk: string) => {
+        responseBytes += Buffer.byteLength(chunk, 'utf8');
+        if (responseBytes > MAX_RESPONSE_BYTES) {
+          request.destroy(new Error(`Response exceeded ${MAX_RESPONSE_BYTES} bytes`));
+        }
+      });
       response.on('end', () => {
         if (response.statusCode !== 200) {
+          try {
+            electronLog.variables.sender = 'log.remote';
+            electronLog.processMessage(
+              { data: [`received HTTP response code ${response.statusCode} from ${t.url}`], level: 'warn' },
+              {
+                transports: {
+                  console: (electronLog.transports as Record<string, unknown>)['console'],
+                  ipc: (electronLog.transports as Record<string, unknown>)['ipc'],
+                  file: (electronLog.transports as Record<string, unknown>)['file'],
+                },
+              },
+            );
+          } finally {
+            electronLog.variables.sender = 'main';
+          }
+        }
+      });
+    });
+
+    request.on('error', t.onError || ((error: Error) => {
+      try {
+        electronLog.variables.sender = 'log.remote';
+        electronLog.processMessage(
+          { data: [`cannot send HTTP request to ${t.url}`, error], level: 'warn' },
+          {
+            transports: {
+              console: (electronLog.transports as Record<string, unknown>)['console'],
+              ipc: (electronLog.transports as Record<string, unknown>)['ipc'],
+              file: (electronLog.transports as Record<string, unknown>)['file'],
+            },
+          },
+        );
+      } finally {
+        electronLog.variables.sender = 'main';
+      }
+    }));
+
+    function handleError(error: Error): void {
+      if (t.onError) {
+        t.onError(error);
+      } else {
+        try {
           electronLog.variables.sender = 'log.remote';
           electronLog.processMessage(
-            { data: [`received HTTP response code ${response.statusCode} from ${t.url}`], level: 'warn' },
+            { data: [`cannot send HTTP request to ${t.url}`, error], level: 'warn' },
             {
               transports: {
                 console: (electronLog.transports as Record<string, unknown>)['console'],
@@ -85,25 +154,11 @@ export function remoteTransportFactory(electronLog: ElectronLog, defaultUrl: str
               },
             },
           );
+        } finally {
           electronLog.variables.sender = 'main';
         }
-      });
-    });
-
-    request.on('error', t.onError || ((error: Error) => {
-      electronLog.variables.sender = 'log.remote';
-      electronLog.processMessage(
-        { data: [`cannot send HTTP request to ${t.url}`, error], level: 'warn' },
-        {
-          transports: {
-            console: (electronLog.transports as Record<string, unknown>)['console'],
-            ipc: (electronLog.transports as Record<string, unknown>)['ipc'],
-            file: (electronLog.transports as Record<string, unknown>)['file'],
-          },
-        },
-      );
-      electronLog.variables.sender = 'main';
-    }));
+      }
+    }
   }
 
   const transport = transportFn as RemoteTransport;

@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
 import type { AppState } from '../app-state.js';
 import { fileURLToPath } from 'url';
@@ -21,7 +21,7 @@ export function openEditorWindow(state: AppState): void {
     },
   });
 
-  state.editorWindow.loadFile('./src/renderer/editor/index.html');
+  state.editorWindow.loadFile(path.join(app.getAppPath(), 'src', 'renderer', 'editor', 'index.html'));
 
   state.editorWindow.on('closed', function () {
     state.editorWindow = null;

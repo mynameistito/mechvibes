@@ -57,7 +57,7 @@ const state: AppState = {
   parsedMuteHotkey: null,
 };
 
-const { debug, debugConfigFile } = initializeDebugAndLogging(state, user_dir);
+const { debug } = initializeDebugAndLogging(state, user_dir);
 
 fs.ensureDirSync(custom_dir);
 
@@ -175,7 +175,6 @@ if (!gotTheLock) {
       store,
       startupHandler: startup_handler,
       debug,
-      debugConfigFile,
       customDir: custom_dir,
       currentPackStoreId: current_pack_store_id,
       muteHotkeyStoreId: MUTE_HOTKEY_STORE_ID,
@@ -214,7 +213,7 @@ app.on('window-all-closed', function () {
 app.on('activate', function () {
   log.silly('App has been activated');
   if (state.win === null) {
-    createAppWindow(true, state, debug);
+    state.win = createAppWindow(true, state, debug);
   } else {
     if (process.platform === 'darwin') {
       app.dock?.show();
@@ -234,5 +233,4 @@ app.on('before-quit', OnBeforeQuit);
 
 app.on('quit', () => {
   log.silly('Goodbye.');
-  app.quit();
 });

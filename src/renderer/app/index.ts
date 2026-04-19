@@ -196,7 +196,8 @@ function getPack(pack_id: string): ISoundpackConfig | undefined {
   return packs.find((pack) => pack.pack_id === pack_id);
 }
 
-function getSavedPack(): ISoundpackConfig {
+function getSavedPack(): ISoundpackConfig | null {
+  if (packs.length === 0) return null;
   if (store.has(MV_PACK_LSID)) {
     const pack_id = store.get(MV_PACK_LSID) as string;
     const pack = getPack(pack_id);
@@ -206,6 +207,7 @@ function getSavedPack(): ISoundpackConfig {
 }
 
 function setPack(pack_id: string) {
+  if (packs.length === 0) return;
   let index = 0;
   packs.forEach((_pack, i) => {
     if (_pack.pack_id === pack_id) index = i;
@@ -216,6 +218,7 @@ function setPack(pack_id: string) {
 }
 
 function setPackByIndex(index: number) {
+  if (packs.length === 0) return;
   loadPack(index);
   current_pack = packs[index];
   store.set(MV_PACK_LSID, current_pack.pack_id);
@@ -272,10 +275,12 @@ function packsToOptions(packList: HTMLSelectElement) {
       app_version: string;
       is_packaged: boolean;
       resources_path: string;
+      active_volume: boolean;
     };
     CUSTOM_PACKS_DIR = globals.custom_dir;
     MV_PACK_LSID = globals.current_pack_store_id;
     APP_VERSION = globals.app_version;
+    active_volume = globals.active_volume;
     if (globals.is_packaged) {
       OFFICIAL_PACKS_DIR = path.join(globals.resources_path, 'audio');
     }
@@ -340,7 +345,7 @@ function packsToOptions(packList: HTMLSelectElement) {
     });
 
     current_pack = getSavedPack();
-    loadPack();
+    if (current_pack !== null) loadPack();
 
     if (store.get(MV_TRAY_LSID) !== undefined) {
       tray_icon_toggle.checked = store.get(MV_TRAY_LSID) as boolean;
@@ -393,8 +398,9 @@ function packsToOptions(packList: HTMLSelectElement) {
       primary.innerText = `${volume.value}`;
       volume_value.innerHTML = `${primary.outerHTML}`;
       if (active_volume) {
+        const effectiveSystemVolume = system_volume > 0 ? system_volume : 1;
         const adjusted = document.createElement('span');
-        adjusted.innerText = `(${Math.round(parseInt(volume.value) * (100 / system_volume))})`;
+        adjusted.innerText = `(${Math.round(parseInt(volume.value) * (100 / effectiveSystemVolume))})`;
         adjusted.style.marginLeft = '1em';
         adjusted.style.fontSize = '12px';
         adjusted.style.fontWeight = 'normal';

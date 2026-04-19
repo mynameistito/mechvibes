@@ -42,7 +42,7 @@ export function GetFileFromArchive(folder: string, search: string): Result<strin
   return Result.try({
     try: () => {
       const zip = new Zip(folder);
-      const normalizedSearch = search.toLowerCase();
+      const normalizedSearch = search.replace(/\\/g, '/').toLowerCase();
       for (const file of zip.getEntries()) {
         if (file.isDirectory) continue;
         const fileName = file.entryName.replace(/\\/g, '/').toLowerCase();

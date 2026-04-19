@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import log from 'electron-log';
 import type { AppState } from '../app-state.js';
@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export { type DebugState } from './debug-state.js';
 
-export function createDebugWindow(state: AppState, debug: DebugState, debugConfigFile: string): void {
+export function createDebugWindow(state: AppState, debug: DebugState): void {
   if (state.debugWindow) {
     state.debugWindow.focus();
     return;
@@ -29,7 +29,7 @@ export function createDebugWindow(state: AppState, debug: DebugState, debugConfi
   });
 
   state.debugWindow.removeMenu();
-  state.debugWindow.loadFile('./src/renderer/debug/index.html');
+  state.debugWindow.loadFile(path.join(app.getAppPath(), 'src', 'renderer', 'debug', 'index.html'));
 
   state.debugWindow.webContents.on('did-finish-load', () => {
     const options = {
@@ -42,7 +42,12 @@ export function createDebugWindow(state: AppState, debug: DebugState, debugConfi
   });
 
   const handleFetchDebugOptions = () => {
-    const options = { ...debug, path: debugConfigFile };
+    const options = {
+      enabled: debug.enabled,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      level: (log.transports as any).remote.level,
+      identifier: debug.identifier,
+    };
     state.debugWindow?.webContents.send('debug-options', options);
   };
   ipcMain.on('fetch-debug-options', handleFetchDebugOptions);

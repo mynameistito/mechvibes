@@ -2,26 +2,24 @@ import { dialog, BrowserWindow } from 'electron';
 import * as path from 'path';
 import fs from 'fs-extra';
 import log from 'electron-log';
+import { showDialogWindow } from '../windows/dialog-window.js';
 
-export function checkAndMigrateStorage(options: {
+export async function checkAndMigrateStorage(options: {
   shouldCheck: boolean;
   markAsked: () => void;
   homeDir: string;
   customDir: string;
   win: BrowserWindow | null;
-}): void {
+}): Promise<void> {
   if (!options.shouldCheck) return;
 
   const old_custom_dir = path.join(options.homeDir, '/mechvibes_custom');
   if (!fs.existsSync(old_custom_dir)) return;
 
   log.debug('Old custom directory exists, prompting user for migration...');
-  const response = dialog.showMessageBoxSync({
-    type: 'question',
+  const response = await showDialogWindow(options.win, {
+    message: "Soundpacks have moved to a new location. Do you want to migrate your old soundpacks to the new location? We'll only ask you this once.",
     buttons: ['Yes', 'Not right now', "Don't ask again"],
-    title: 'Mechvibes',
-    message: "Soundpacks have moved to a new location, do you want to migrate your old soundpacks to the new location? We'll only ask you this once.",
-    defaultId: 0,
     cancelId: 1,
   });
 

@@ -14,7 +14,6 @@ export interface IpcDependencies {
   store: Store;
   startupHandler: StartupHandler;
   debug: DebugState;
-  debugConfigFile: string;
   customDir: string;
   currentPackStoreId: string;
   muteHotkeyStoreId: string;
@@ -26,7 +25,7 @@ export interface IpcDependencies {
 
 export function registerIpcHandlers(deps: IpcDependencies): void {
   const {
-    state, store, startupHandler, debug, debugConfigFile,
+    state, store, startupHandler, debug,
     customDir, currentPackStoreId, muteHotkeyStoreId,
     defaultMuteHotkey, userDir, toggleMute, trayCallbacks,
   } = deps;
@@ -37,6 +36,7 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     app_version: app.getVersion(),
     is_packaged: app.isPackaged,
     resources_path: process.resourcesPath,
+    active_volume: state.activeVolume.is_enabled,
   }));
 
   ipcMain.on('toggle-mute', () => {
@@ -69,6 +69,16 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
       log.warn(`Rejecting unsupported hotkey: ${hotkey}`);
       return;
     }
+    if (state.parsedMuteHotkey) {
+      for (const kc of state.parsedMuteHotkey.keycodes) {
+        const key = String(kc);
+        delete state.pressedKeys[key];
+        if (state.watchdogTimers[key] !== undefined) {
+          clearTimeout(state.watchdogTimers[key]);
+          delete state.watchdogTimers[key];
+        }
+      }
+    }
     store.set(muteHotkeyStoreId, hotkey);
     state.parsedMuteHotkey = parsed;
     state.hotkeyPhysicallyDown = false;
@@ -89,6 +99,8 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     }
   });
 
+  const ALLOWED_LOG_LEVELS = new Set(['error', 'warn', 'info', 'verbose', 'debug', 'silly']);
+
   ipcMain.on('electron-log', (event, message: string, level: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const window_options = (event.sender as any).browserWindowOptions as { name?: string } | undefined;
@@ -99,19 +111,20 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (log as any).variables.sender = 'u/w';
     }
+    const safeLevel = typeof level === 'string' && ALLOWED_LOG_LEVELS.has(level) ? level : 'info';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (log as any)[level](message);
+    (log as any)[safeLevel](message);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (log as any).variables.sender = 'main';
   });
 
   ipcMain.on('open-debug-options', () => {
-    createDebugWindow(state, debug, debugConfigFile);
+    createDebugWindow(state, debug);
   });
 
   ipcMain.on('set-debug-options', (_event, json: { enabled: boolean }) => {
     if (json.enabled && !debug.enabled) {
-      debug.enable();
+      void debug.enable().catch((e: unknown) => log.error(`Failed to enable debug: ${e}`));
     } else if (!json.enabled && debug.enabled) {
       debug.disable();
     }

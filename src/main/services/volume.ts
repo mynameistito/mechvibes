@@ -28,7 +28,7 @@ export function startVolumePolling(
           }
         }
       },
-      catch: (e) => new VolumeError({ message: String(e), source: 'get' }),
+      catch: (e) => new VolumeError({ message: e instanceof Error ? e.message : String(e), source: 'get' }),
     });
   };
 
@@ -43,7 +43,7 @@ export function startVolumePolling(
           }
         }
       },
-      catch: (e) => new VolumeError({ message: String(e), source: 'mute' }),
+      catch: (e) => new VolumeError({ message: e instanceof Error ? e.message : String(e), source: 'mute' }),
     });
   };
 
