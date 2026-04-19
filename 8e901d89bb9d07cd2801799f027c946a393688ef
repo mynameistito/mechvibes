@@ -1,0 +1,23 @@
+tsconfig.json
+  d58f3cb4e2e5dea3 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "8e901d89bb9d07cd2801799f027c946a393688ef",
+  "prompts": {
+    "d58f3cb4e2e5dea3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "573abaa8-7928-49d8-8840-b64952bf9024",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 4,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
