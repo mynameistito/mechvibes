@@ -634,14 +634,15 @@ function packsToOptions(packs, pack_list) {
       playSound({ type: "keyup", keycode }, volume.value);
     });
 
-    ipcRenderer.on('keydown', (_, { keycode }) => {
-      app_logo.classList.add('pressed');
-      // safety auto-release: if keyup IPC is lost, unstick after 500ms
+    ipcRenderer.on('keydown', (_, { keycode, isRepeat }) => {
       if (pressed_keys[`${keycode}`]) {
         clearTimeout(pressed_keys[`${keycode}`]);
       }
       pressed_keys[`${keycode}`] = setTimeout(() => releaseKey(keycode), 500);
-      playSound({ type: "keydown", keycode }, volume.value);
+      if (!isRepeat) {
+        app_logo.classList.add('pressed');
+        playSound({ type: "keydown", keycode }, volume.value);
+      }
     });
 
     ipcRenderer.on('clear-pressed-keys', () => {

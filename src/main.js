@@ -486,6 +486,7 @@ if (!gotTheLock) {
     let muteState = mute.is_enabled;
     let hotkeyPhysicallyDown = false;
     let pressedKeys = {};
+    let watchdogTimers = {};
 
     iohook.start();
 
@@ -536,12 +537,26 @@ if (!gotTheLock) {
         }
         return;
       }
+      const key = `${event.keycode}`;
+      const isRepeat = !!pressedKeys[key];
+
+      // watchdog: clear stuck pressedKeys entry if keyup is missed
+      if (watchdogTimers[key]) clearTimeout(watchdogTimers[key]);
+      watchdogTimers[key] = setTimeout(() => {
+        delete pressedKeys[key];
+        delete watchdogTimers[key];
+      }, 500);
+
       if (!muteState) {
-        const key = `${event.keycode}`;
-        if (pressedKeys[key]) return;
-        pressedKeys[key] = true;
-        if (win && !win.isDestroyed()) {
-          win.webContents.send("keydown", event);
+        if (!isRepeat) {
+          if (win && !win.isDestroyed()) {
+            pressedKeys[key] = true;
+            win.webContents.send("keydown", { ...event, isRepeat: false });
+          }
+        } else {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("keydown", { ...event, isRepeat: true });
+          }
         }
       }
     });
@@ -551,8 +566,12 @@ if (!gotTheLock) {
         hotkeyPhysicallyDown = false;
       }
       const key = `${event.keycode}`;
-      pressedKeys[key] = false;
+      if (watchdogTimers[key]) {
+        clearTimeout(watchdogTimers[key]);
+        delete watchdogTimers[key];
+      }
       if (!muteState) {
+        pressedKeys[key] = false;
         if (win && !win.isDestroyed()) {
           win.webContents.send("keyup", event);
         }
@@ -563,6 +582,8 @@ if (!gotTheLock) {
       muteState = !muteState;
       if (muteState) {
         mute.enable();
+        for (const t of Object.values(watchdogTimers)) clearTimeout(t);
+        watchdogTimers = {};
         pressedKeys = {};
       } else {
         mute.disable();
