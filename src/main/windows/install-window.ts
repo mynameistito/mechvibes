@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { BrowserWindow } from 'electron';
 import * as path from 'path';
 import type { AppState } from '../app-state.js';
 import { fileURLToPath } from 'url';
@@ -10,7 +10,6 @@ export function openInstallWindow(packId: string, state: AppState): void {
     height: 200,
     useContentSize: false,
     webPreferences: {
-      preload: path.join(__dirname, '../../renderer/install/index.js'),
       contextIsolation: false,
       nodeIntegration: true,
       webSecurity: false,
@@ -20,7 +19,11 @@ export function openInstallWindow(packId: string, state: AppState): void {
   });
 
   state.installer.removeMenu();
-  state.installer.loadFile(path.join(app.getAppPath(), 'src', 'renderer', 'install', 'index.html'));
+  if (process.env.ELECTRON_RENDERER_URL) {
+    state.installer.loadURL(`${process.env.ELECTRON_RENDERER_URL}/install/index.html`);
+  } else {
+    state.installer.loadFile(path.join(__dirname, '../../renderer/install/index.html'));
+  }
 
   state.installer.webContents.on('did-finish-load', () => {
     state.installer!.webContents.send('install-pack', packId);

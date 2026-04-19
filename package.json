@@ -7,12 +7,12 @@
   "type": "module",
   "main": "dist/main/index.js",
   "scripts": {
-    "build": "tsgo",
-    "dev": "npm run build && electron .",
-    "build:all": "npm run build && electron-builder -wml",
-    "build:win": "npm run build && electron-builder -w",
-    "build:mac": "npm run build && electron-builder -m",
-    "build:linux": "npm run build && electron-builder -l",
+    "build": "electron-vite build",
+    "dev": "electron-vite dev",
+    "build:all": "electron-vite build && electron-builder -wml",
+    "build:win": "electron-vite build && electron-builder -w",
+    "build:mac": "electron-vite build && electron-builder -m",
+    "build:linux": "electron-vite build && electron-builder -l",
     "build:clean": "node tools/clean-dist.js"
   },
   "keywords": [],
@@ -27,11 +27,6 @@
       {
         "from": "audio",
         "to": "audio"
-      },
-      {
-        "from": "src/renderer",
-        "to": "src/renderer",
-        "filter": ["**/*.html", "**/*.css"]
       },
       {
         "from": "src/assets",
@@ -113,6 +108,7 @@
     "@typescript/native-preview": "^7.0.0-dev.20260419.1",
     "electron": "^41.2.1",
     "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0",
     "typescript": "^6.0.3"
   },
   "trustedDependencies": [

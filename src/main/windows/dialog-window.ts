@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -37,7 +37,6 @@ export function showDialogWindow(
       show: false,
       title: 'Mechvibes',
       webPreferences: {
-        preload: path.join(__dirname, '../../renderer/dialog/index.js'),
         contextIsolation: false,
         nodeIntegration: true,
         webSecurity: false,
@@ -45,7 +44,11 @@ export function showDialogWindow(
     });
 
     win.removeMenu();
-    win.loadFile(path.join(app.getAppPath(), 'src', 'renderer', 'dialog', 'index.html'));
+    if (process.env.ELECTRON_RENDERER_URL) {
+      win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/dialog/index.html`);
+    } else {
+      win.loadFile(path.join(__dirname, '../../renderer/dialog/index.html'));
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onResult = (_event: any, buttonIndex: number) => {
