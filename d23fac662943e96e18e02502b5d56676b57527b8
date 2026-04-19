@@ -1,0 +1,77 @@
+src/main/preloads/dialog.ts
+  d58f3cb4e2e5dea3 1-10
+src/main/windows/debug-window.ts
+  d58f3cb4e2e5dea3 1,22-25,32-36
+src/renderer/install/index.html
+  d58f3cb4e2e5dea3 9-11
+src/main/windows/app-window.ts
+  d58f3cb4e2e5dea3 16,18,26-30
+src/renderer/install/index.tsx
+  d58f3cb4e2e5dea3 1-5
+src/renderer/app/AppWindow.tsx
+  d58f3cb4e2e5dea3 1-562
+src/renderer/dialog/Dialog.tsx
+  d58f3cb4e2e5dea3 1-46
+src/renderer/dialog/index.html
+  d58f3cb4e2e5dea3 8-10
+src/renderer/tailwind.css
+  d58f3cb4e2e5dea3 1-2
+src/renderer/editor/index.tsx
+  d58f3cb4e2e5dea3 1-5
+src/main/windows/editor-window.ts
+  d58f3cb4e2e5dea3 1,17,19,23-27
+package.json
+  d58f3cb4e2e5dea3 10-17,100-103,106,112-113,117-118
+src/main/windows/dialog-window.ts
+  d58f3cb4e2e5dea3 1,40-43,48-52
+src/renderer/electron-bridge.d.ts
+  d58f3cb4e2e5dea3 1-6
+src/renderer/debug/index.html
+  d58f3cb4e2e5dea3 9-11
+src/renderer/editor/index.html
+  d58f3cb4e2e5dea3 9-11
+src/main/preloads/debug.ts
+  d58f3cb4e2e5dea3 1-13
+src/renderer/debug/index.tsx
+  d58f3cb4e2e5dea3 1-6
+src/renderer/vite-env.d.ts
+  d58f3cb4e2e5dea3 1
+src/renderer/dialog/index.tsx
+  d58f3cb4e2e5dea3 1-6
+electron.vite.config.ts
+  d58f3cb4e2e5dea3 1-50
+src/renderer/app/index.html
+  d58f3cb4e2e5dea3 5,9-11
+src/renderer/install/InstallWindow.tsx
+  d58f3cb4e2e5dea3 1,4,8,22-59,62,64-65,67-86,88,90-135
+src/main/windows/install-window.ts
+  d58f3cb4e2e5dea3 1,13,15,22-26
+tsconfig.json
+  d58f3cb4e2e5dea3 4-6,8
+src/renderer/app/index.tsx
+  d58f3cb4e2e5dea3 1-5
+src/renderer/editor/EditorWindow.tsx
+  d58f3cb4e2e5dea3 1,5-8,11-14,16-26,39-48,50-62,64-67,69-81,83-90,92,94-98,100-130,132-148,150-157,159-194,196-200,202-261,263-268,270-274,276,278-281,283-292,294,296-299,301-319,321-322,326,328-335,337-366,370-415,417-432,434-438
+src/renderer/debug/DebugConsole.tsx
+  d58f3cb4e2e5dea3 1,9-18,20-23,25,27-30,33-35,37-50,52-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "d23fac662943e96e18e02502b5d56676b57527b8",
+  "prompts": {
+    "d58f3cb4e2e5dea3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "573abaa8-7928-49d8-8840-b64952bf9024",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 96,
+      "total_deletions": 48,
+      "accepted_lines": 1352,
+      "overriden_lines": 0
+    }
+  }
+}
