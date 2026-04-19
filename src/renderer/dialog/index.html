@@ -4,13 +4,9 @@
     <meta charset="UTF-8" />
     <title>Mechvibes</title>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
-    <link rel="stylesheet" href="./dialog.css" />
   </head>
-  <body>
-    <div id="dialog-root">
-      <p id="dialog-message"></p>
-      <div id="dialog-buttons"></div>
-    </div>
-    <script type="module" src="./index.ts"></script>
+  <body class="m-0 p-0 h-screen overflow-hidden bg-white dark:bg-[#1a1a1a] font-sans text-[13px]">
+    <div id="dialog-root" class="h-full"></div>
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>
