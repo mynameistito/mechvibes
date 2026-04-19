@@ -1,6 +1,8 @@
 /// <reference types="jquery" />
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { shell } from 'electron';
 import Store from 'electron-store';
 import remapper from './utils/remapper.js';
@@ -233,7 +235,7 @@ $(document).ready(() => {
   ($('#import-input') as JQuery<HTMLInputElement>).on('change', (e) => {
     const files = (e.target as HTMLInputElement).files;
     if (!files || !files[0]) return;
-    const buffer = fs.readFileSync(files[0].path);
+    const buffer = fs.readFileSync((files[0] as File & { path: string }).path);
     const imported_data = JSON.parse(buffer.toString()) as PackData;
     importPack(imported_data);
     _checkIfHasSound();

@@ -7,7 +7,7 @@
   "type": "module",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsgo",
     "dev": "npm run build && electron .",
     "build:all": "npm run build && electron-builder -wml",
     "build:win": "npm run build && electron-builder -w",

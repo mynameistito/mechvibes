@@ -45,6 +45,7 @@ export class SoundpackConfigV2 implements ISoundpackConfig {
     this.is_custom = meta.is_custom;
 
     for (const key of Object.keys(this) as (keyof this)[]) {
+      if (key === 'audio') continue;
       if (this[key] === null || this[key] === undefined) {
         throw new Error(`SoundpackConfigV2: Missing required property: ${String(key)}`);
       }

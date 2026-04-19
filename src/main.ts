@@ -12,6 +12,8 @@ import StartupHandler from './utils/startup_handler.js';
 import StoreToggle from './utils/store_toggle.js';
 import * as IpcServer from './utils/ipc.js';
 import remoteTransportFactory from './libs/electron-log/transports/remote.js';
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // NOTE: Do not update electron-log, as we have a custom transport override which may not be compatible with newer versions.
 
@@ -182,6 +184,7 @@ function createWindow(show = false): BrowserWindow {
     height: 720,
     backgroundThrottling: false,
     titleBarStyle: 'hidden',
+    titleBarOverlay: true,
     webPreferences: {
       preload: path.join(__dirname, 'app.js'),
       contextIsolation: false,
@@ -194,14 +197,11 @@ function createWindow(show = false): BrowserWindow {
 
   win.removeMenu();
 
-  if (typeof (win as unknown as Record<string, unknown>)['setTitleBarOverlay'] === 'function') {
-    const isDark = nativeTheme.shouldUseDarkColors;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (win as any).setTitleBarOverlay({
-      color: isDark ? '#1a1a1a' : '#f0f0f0',
-      symbolColor: isDark ? '#e0e0e0' : '#333333',
-    });
-  }
+  const isDark = nativeTheme.shouldUseDarkColors;
+  win.setTitleBarOverlay({
+    color: isDark ? '#1a1a1a' : '#f0f0f0',
+    symbolColor: isDark ? '#e0e0e0' : '#333333',
+  });
 
   win.loadFile('./src/app.html');
 
@@ -220,7 +220,7 @@ function createWindow(show = false): BrowserWindow {
   win.on('close', function (event) {
     if (!isQuiting) {
       if (process.platform === 'darwin') {
-        app.dock.hide();
+        app.dock?.hide();
       }
       event.preventDefault();
       win!.hide();
@@ -321,7 +321,7 @@ const gotTheLock = app.requestSingleInstanceLock();
 app.on('second-instance', () => {
   if (win) {
     if (process.platform === 'darwin') {
-      app.dock.show();
+      app.dock?.show();
     }
     win.show();
     win.focus();
@@ -350,7 +350,7 @@ if (!gotTheLock) {
   app.on('second-instance', (_event, commandLine) => {
     if (win) {
       if (process.platform === 'darwin') {
-        app.dock.show();
+        app.dock?.show();
       } else {
         const url = commandLine.pop();
         if (url) {
@@ -597,7 +597,7 @@ if (!gotTheLock) {
           label: 'Mechvibes',
           click: function () {
             if (process.platform === 'darwin') {
-              app.dock.show();
+              app.dock?.show();
             }
             win!.show();
             win!.focus();
@@ -690,7 +690,7 @@ if (!gotTheLock) {
           tray!.popUpContextMenu(buildContextMenu());
         });
         tray.on('right-click', () => {
-          app.dock.show();
+          app.dock?.show();
           win!.show();
           win!.focus();
         });
@@ -869,7 +869,7 @@ app.on('activate', function () {
     createWindow(true);
   } else {
     if (process.platform === 'darwin') {
-      app.dock.show();
+      app.dock?.show();
     }
     if (win.isMinimized()) {
       win.restore();
