@@ -12,7 +12,7 @@ export function openInstallWindow(packId: string, state: AppState): void {
     webPreferences: {
       contextIsolation: false,
       nodeIntegration: true,
-      webSecurity: false,
+      webSecurity: true,
     },
     show: false,
     parent: state.win ?? undefined,

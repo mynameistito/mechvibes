@@ -15,7 +15,7 @@ export function createAppWindow(show: boolean, state: AppState, debug: DebugStat
     webPreferences: {
       contextIsolation: false,
       nodeIntegration: true,
-      webSecurity: false,
+      webSecurity: true,
       backgroundThrottling: false,
     },
     show: false,

@@ -37,9 +37,10 @@ export function showDialogWindow(
       show: false,
       title: 'Mechvibes',
       webPreferences: {
-        contextIsolation: false,
-        nodeIntegration: true,
-        webSecurity: false,
+        contextIsolation: true,
+        nodeIntegration: false,
+        webSecurity: true,
+        preload: path.join(__dirname, '../preload/dialog.mjs'),
       },
     });
 

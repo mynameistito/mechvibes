@@ -19,9 +19,10 @@ export function createDebugWindow(state: AppState, debug: DebugState): void {
     height: 500,
     useContentSize: false,
     webPreferences: {
-      contextIsolation: false,
-      nodeIntegration: true,
-      webSecurity: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
+      preload: path.join(__dirname, '../preload/debug.mjs'),
     },
     show: false,
     parent: state.win ?? undefined,

@@ -14,9 +14,9 @@ export function openEditorWindow(state: AppState): void {
     width: 1200,
     height: 600,
     webPreferences: {
-      contextIsolation: false,
+      contextIsolation: true,
       nodeIntegration: true,
-      webSecurity: false,
+      webSecurity: true,
     },
   });
 

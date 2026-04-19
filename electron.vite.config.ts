@@ -1,6 +1,7 @@
 import { defineConfig } from 'electron-vite'
 import { resolve } from 'path'
 import { builtinModules } from 'module'
+import tailwindcss from '@tailwindcss/vite'
 
 const rendererNodeExternals = [
   ...builtinModules,
@@ -9,6 +10,17 @@ const rendererNodeExternals = [
 ]
 
 export default defineConfig({
+  preload: {
+    build: {
+      outDir: resolve('dist/preload'),
+      rollupOptions: {
+        input: {
+          dialog: resolve('src/main/preloads/dialog.ts'),
+          debug: resolve('src/main/preloads/debug.ts'),
+        },
+      },
+    },
+  },
   main: {
     build: {
       outDir: resolve('dist/main'),
@@ -19,6 +31,7 @@ export default defineConfig({
     },
   },
   renderer: {
+    plugins: [tailwindcss()],
     root: resolve('src/renderer'),
     build: {
       outDir: resolve('dist/renderer'),
