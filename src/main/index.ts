@@ -1,5 +1,4 @@
 import { app, BrowserWindow, Tray, Menu, shell, ipcMain, nativeTheme, powerMonitor, dialog } from 'electron';
-import { getVolume, getMute } from 'easy-volume';
 import * as path from 'path';
 import * as os from 'os';
 import fs from 'fs-extra';
@@ -8,7 +7,8 @@ import Store from 'electron-store';
 import { uIOhook } from 'uiohook-napi';
 import type { UiohookKeyboardEvent } from 'uiohook-napi';
 import { parseHotkey, matchesHotkey, type ParsedHotkey } from './services/hotkey.js';
-import { TaggedError, Result } from 'better-result';
+import { startVolumePolling } from './services/volume.js';
+import { Result } from 'better-result';
 import StartupHandler from '../main-only/startup-handler.js';
 import StoreToggle from '../main-only/store-toggle.js';
 import * as IpcServer from '../main-only/ipc.js';
@@ -25,8 +25,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // NOTE: Do not update electron-log, as we have a custom transport override which may not be compatible with newer versions.
 
 const store = new Store();
-
-class VolumeError extends TaggedError('volume')<{ message: string; source: 'get' | 'mute' }>() {}
 
 function validateTheme(value: unknown): 'system' | 'light' | 'dark' {
   return (['system', 'light', 'dark'] as const).includes(value as 'system') ? value as 'system' | 'light' | 'dark' : 'system';
@@ -270,61 +268,12 @@ if (!gotTheLock) {
 
     uIOhook.start();
 
-    let volumeLevel = -1;
-    let system_mute = false;
-    let system_volume_error = false;
-
-    const pollVolume = async (): Promise<Result<void, VolumeError>> => {
-      return Result.tryPromise({
-        try: async () => {
-          const v = await getVolume();
-          if (v !== volumeLevel) {
-            volumeLevel = v;
-            state.win?.webContents.send('system-volume-update', volumeLevel);
-          }
-        },
-        catch: (e) => new VolumeError({ message: String(e), source: 'get' }),
-      });
-    };
-
-    const pollMute = async (): Promise<Result<void, VolumeError>> => {
-      return Result.tryPromise({
-        try: async () => {
-          const m = await getMute();
-          if (m !== system_mute) {
-            system_mute = m;
-            state.win?.webContents.send('system-mute-status', system_mute);
-          }
-        },
-        catch: (e) => new VolumeError({ message: String(e), source: 'mute' }),
-      });
-    };
-
-    state.sysCheckInterval = setInterval(async () => {
-      if (!state.muteState) {
-        const volResult = await pollVolume();
-        if (!Result.isOk(volResult)) {
-          if (state.sysCheckInterval !== null) clearInterval(state.sysCheckInterval);
-          const err = volResult.error.message;
-          if (err === '' && !system_volume_error) {
-            system_volume_error = true;
-          }
-          log.error(`Volume Error: ${err}`);
-        }
-
-        const muteResult = await pollMute();
-        if (!Result.isOk(muteResult)) {
-          if (state.sysCheckInterval !== null) clearInterval(state.sysCheckInterval);
-          const err = muteResult.error.message;
-          if (err === '' && !system_volume_error) {
-            system_volume_error = true;
-            OnBeforeQuit();
-            app.exit(1);
-          }
-          log.error(`Mute Error: ${err}`);
-        }
-      }
-    }, 3000);
+    state.sysCheckInterval = startVolumePolling(state, log, {
+      onFatalError: () => {
+        OnBeforeQuit();
+        app.exit(1);
+      },
+    });
 
     uIOhook.on('keydown', (event: UiohookKeyboardEvent) => {
       if (matchesHotkey(event, parsedMuteHotkey)) {
