@@ -14,6 +14,11 @@ import StoreToggle from '../main-only/store-toggle.js';
 import * as IpcServer from '../main-only/ipc.js';
 import remoteTransportFactory from '../main-only/electron-log/remote-transport.js';
 import type { AppState } from './app-state.js';
+import { createAppWindow } from './windows/app-window.js';
+import { openEditorWindow } from './windows/editor-window.js';
+import { openInstallWindow } from './windows/install-window.js';
+import { createDebugWindow } from './windows/debug-window.js';
+import type { DebugState } from './windows/debug-state.js';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -59,14 +64,6 @@ const state: AppState = {
   watchdogTimers: {},
   sysCheckInterval: null,
 };
-
-interface DebugState {
-  enabled: boolean;
-  identifier: string | undefined;
-  remoteUrl: string;
-  enable(): Promise<void>;
-  disable(): void;
-}
 
 const debugConfigFile = path.join(user_dir, '/remote-debug.json');
 
@@ -192,143 +189,7 @@ log.hooks.push((msg, transport: any) => {
 
 fs.ensureDirSync(custom_dir);
 
-function createWindow(show = false): BrowserWindow {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  state.win = new BrowserWindow({
-    width: 400,
-    height: 720,
-    backgroundThrottling: false,
-    titleBarStyle: 'hidden',
-    titleBarOverlay: true,
-    webPreferences: {
-      preload: path.join(__dirname, '../renderer/app/index.js'),
-      contextIsolation: false,
-      nodeIntegration: true,
-      webSecurity: false,
-    },
-    show: false,
-  } as Electron.BrowserWindowConstructorOptions & { name?: string });
-  (state.win as unknown as { _name: string })._name = 'app';
-
-  state.win.removeMenu();
-
-  const isDark = nativeTheme.shouldUseDarkColors;
-  state.win.setTitleBarOverlay({
-    color: isDark ? '#1a1a1a' : '#f0f0f0',
-    symbolColor: isDark ? '#e0e0e0' : '#333333',
-  });
-
-  state.win.loadFile('./src/renderer/app/index.html');
-
-  state.win.webContents.on('did-finish-load', () => {
-    if (debug.enabled) {
-      state.win!.webContents.send('debug-in-use', true);
-    }
-    state.win!.webContents.send('ava-toggle', state.activeVolume.is_enabled);
-    state.win!.webContents.send('mechvibes-mute-status', state.mute.is_enabled);
-  });
-
-  state.win.on('closed', function () {
-    state.win = null;
-  });
-
-  state.win.on('close', function (event) {
-    if (!state.isQuiting) {
-      if (process.platform === 'darwin') {
-        app.dock?.hide();
-      }
-      event.preventDefault();
-      state.win!.hide();
-    }
-    return false;
-  });
-
-  state.win.on('unresponsive', () => {
-    log.warn('Window has entered unresponsive state');
-    console.log('unresponsive');
-  });
-
-  if (show) {
-    state.win.show();
-  } else {
-    state.win.close();
-  }
-
-  return state.win;
-}
-
-function openInstallWindow(packId: string) {
-  state.installer = new BrowserWindow({
-    width: 300,
-    height: 200,
-    useContentSize: false,
-    webPreferences: {
-      preload: path.join(__dirname, '../renderer/install/index.js'),
-      contextIsolation: false,
-      nodeIntegration: true,
-      webSecurity: false,
-    },
-    show: false,
-    parent: state.win ?? undefined,
-  });
-
-  state.installer.removeMenu();
-  state.installer.loadFile('./src/renderer/install/index.html');
-
-  state.installer.webContents.on('did-finish-load', () => {
-    state.installer!.webContents.send('install-pack', packId);
-  });
-
-  state.installer.on('ready-to-show', () => {
-    state.installer!.show();
-  });
-
-  state.installer.on('closed', function () {
-    state.installer = null;
-  });
-}
-
-function createDebugWindow() {
-  state.debugWindow = new BrowserWindow({
-    width: 350,
-    height: 500,
-    useContentSize: false,
-    webPreferences: {
-      preload: path.join(__dirname, '../renderer/debug/index.js'),
-      contextIsolation: false,
-      nodeIntegration: true,
-      webSecurity: false,
-    },
-    show: false,
-    parent: state.win ?? undefined,
-  });
-
-  state.debugWindow.removeMenu();
-  state.debugWindow.loadFile('./src/renderer/debug/index.html');
-
-  state.debugWindow.webContents.on('did-finish-load', () => {
-    const options = {
-      enabled: debug.enabled,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      level: (log.transports as any).remote.level,
-      identifier: debug.identifier,
-    };
-    state.debugWindow!.webContents.send('debug-options', options);
-  });
-
-  ipcMain.on('fetch-debug-options', () => {
-    const options = { ...debug, path: debugConfigFile };
-    state.debugWindow?.webContents.send('debug-options', options);
-  });
-
-  state.debugWindow.on('ready-to-show', () => {
-    state.debugWindow!.show();
-  });
-
-  state.debugWindow.on('closed', function () {
-    state.debugWindow = null;
-  });
-}
+const firstWindow = createAppWindow(false, state, debug);
 
 const gotTheLock = app.requestSingleInstanceLock();
 app.on('second-instance', () => {
@@ -345,7 +206,7 @@ const protocolCommands: Record<string, (...args: string[]) => void> = {
   install(packId: string) {
     if (state.installer === null) {
       log.debug(`Processing request to install ${packId}...`);
-      openInstallWindow(packId);
+      openInstallWindow(packId, state);
     } else {
       state.installer.focus();
       state.installer.webContents.send('install-pack', packId);
@@ -395,9 +256,9 @@ if (!gotTheLock) {
 
     log.silly('Creating main window for the first time...');
     if (startup_handler.was_started_at_login && state.startMinimized.is_enabled) {
-      state.win = createWindow(false);
+      state.win = createAppWindow(false, state, debug);
     } else {
-      state.win = createWindow(true);
+      state.win = createAppWindow(true, state, debug);
     }
 
     let parsedMuteHotkey = parseHotkey(store.get(MUTE_HOTKEY_STORE_ID, DEFAULT_MUTE_HOTKEY) as string);
@@ -551,7 +412,7 @@ if (!gotTheLock) {
         {
           label: 'Editor',
           click: function () {
-            openEditorWindow();
+            openEditorWindow(state);
           },
         },
         {
@@ -733,7 +594,7 @@ if (!gotTheLock) {
     });
 
     ipcMain.on('open-debug-options', () => {
-      createDebugWindow();
+      createDebugWindow(state, debug, debugConfigFile);
     });
 
     ipcMain.on('set-debug-options', (_event, json: { enabled: boolean }) => {
@@ -813,7 +674,7 @@ app.on('window-all-closed', function () {
 app.on('activate', function () {
   log.silly('App has been activated');
   if (state.win === null) {
-    createWindow(true);
+    createAppWindow(true, state, debug);
   } else {
     if (process.platform === 'darwin') {
       app.dock?.show();
@@ -836,27 +697,3 @@ app.on('quit', () => {
   log.silly('Goodbye.');
   app.quit();
 });
-
-function openEditorWindow() {
-  if (state.editorWindow) {
-    state.editorWindow.focus();
-    return;
-  }
-
-  state.editorWindow = new BrowserWindow({
-    width: 1200,
-    height: 600,
-    webPreferences: {
-      contextIsolation: false,
-      nodeIntegration: true,
-      webSecurity: false,
-      preload: path.join(__dirname, '../renderer/editor/index.js'),
-    },
-  });
-
-  state.editorWindow.loadFile('./src/renderer/editor/index.html');
-
-  state.editorWindow.on('closed', function () {
-    state.editorWindow = null;
-  });
-}
