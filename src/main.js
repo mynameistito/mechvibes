@@ -485,6 +485,7 @@ if (!gotTheLock) {
     // This also prevents key-repeat from toggling mute multiple times while the hotkey is held.
     let muteState = mute.is_enabled;
     let hotkeyPhysicallyDown = false;
+    let pressedKeys = {};
 
     iohook.start();
 
@@ -536,7 +537,12 @@ if (!gotTheLock) {
         return;
       }
       if (!muteState) {
-        win.webContents.send("keydown", event);
+        const key = `${event.keycode}`;
+        if (pressedKeys[key]) return;
+        pressedKeys[key] = true;
+        if (win && !win.isDestroyed()) {
+          win.webContents.send("keydown", event);
+        }
       }
     });
 
@@ -544,8 +550,12 @@ if (!gotTheLock) {
       if (parsedMuteHotkey && parsedMuteHotkey.keycodes.includes(event.keycode)) {
         hotkeyPhysicallyDown = false;
       }
+      const key = `${event.keycode}`;
+      pressedKeys[key] = false;
       if (!muteState) {
-        win.webContents.send("keyup", event);
+        if (win && !win.isDestroyed()) {
+          win.webContents.send("keyup", event);
+        }
       }
     });
 
@@ -553,6 +563,7 @@ if (!gotTheLock) {
       muteState = !muteState;
       if (muteState) {
         mute.enable();
+        pressedKeys = {};
       } else {
         mute.disable();
       }

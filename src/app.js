@@ -614,50 +614,40 @@ function packsToOptions(packs, pack_list) {
       displayVolume();
     });
 
-    // store pressed state of multiple keys
+    // tracks keys visually and provides safety auto-release in case keyup IPC is lost
     let pressed_keys = {};
 
-    // if key released, clear current key
-    ipcRenderer.on('keyup', (_, { keycode }) => {
-      let holding = false;
-      pressed_keys[`${keycode}`] = false;
-      for (const key in pressed_keys) {
-        if(pressed_keys[key]){
-          holding = true;
-        }
+    function releaseKey(keycode) {
+      const key = `${keycode}`;
+      if (pressed_keys[key]) {
+        clearTimeout(pressed_keys[key]);
       }
-
-      const event = {
-        type: "keyup",
-        keycode: keycode,
-      }
-      playSound(event, volume.value);
-
-      if(!holding){
+      pressed_keys[key] = null;
+      const anyHeld = Object.values(pressed_keys).some(Boolean);
+      if (!anyHeld) {
         app_logo.classList.remove('pressed');
       }
+    }
+
+    ipcRenderer.on('keyup', (_, { keycode }) => {
+      releaseKey(keycode);
+      playSound({ type: "keyup", keycode }, volume.value);
     });
 
-    // key pressed, pack current key and play sound
     ipcRenderer.on('keydown', (_, { keycode }) => {
-      // if hold down a key, don't repeat the event
-      if(pressed_keys[`${keycode}`] !== undefined && pressed_keys[`${keycode}`]){
-        return;
-      }
-      pressed_keys[`${keycode}`] = true;
-
-      // display current pressed key
-      // app_logo.innerHTML = keycode;
       app_logo.classList.add('pressed');
-
-      const event = {
-        type: "keydown",
-        keycode: keycode,
+      // safety auto-release: if keyup IPC is lost, unstick after 500ms
+      if (pressed_keys[`${keycode}`]) {
+        clearTimeout(pressed_keys[`${keycode}`]);
       }
-      playSound(event, volume.value);
+      pressed_keys[`${keycode}`] = setTimeout(() => releaseKey(keycode), 500);
+      playSound({ type: "keydown", keycode }, volume.value);
     });
 
     ipcRenderer.on('clear-pressed-keys', () => {
+      for (const key in pressed_keys) {
+        clearTimeout(pressed_keys[key]);
+      }
       pressed_keys = {};
       app_logo.classList.remove('pressed');
     });
