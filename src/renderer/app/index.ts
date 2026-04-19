@@ -4,12 +4,12 @@ import { shell, ipcRenderer } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { GetFileFromArchive } from './libs/soundpacks/file-manager.js';
+import { GetFileFromArchive } from '../../shared/soundpacks/file-manager.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-import { SoundpackConfigV1 } from './libs/soundpacks/config-v1.js';
-import { SoundpackConfigV2 } from './libs/soundpacks/config-v2.js';
+import { SoundpackConfigV1 } from '../../shared/soundpacks/config-v1.js';
+import { SoundpackConfigV2 } from '../../shared/soundpacks/config-v2.js';
 import { Result } from 'better-result';
-import type { ISoundpackConfig, SoundpackMeta } from './libs/soundpacks/soundpack-config.js';
+import type { ISoundpackConfig, SoundpackMeta } from '../../shared/soundpacks/soundpack-config.js';
 
 const store = new Store();
 
@@ -21,7 +21,7 @@ let MV_PACK_LSID = 'mechvibes-pack';
 let CUSTOM_PACKS_DIR = '';
 let APP_VERSION = '';
 
-const OFFICIAL_PACKS_DIR = path.join(__dirname, '../src/audio');
+let OFFICIAL_PACKS_DIR = path.join(__dirname, '../../../audio');
 
 let active_volume = true;
 let system_volume = 50;
@@ -270,10 +270,15 @@ function packsToOptions(packList: HTMLSelectElement) {
       custom_dir: string;
       current_pack_store_id: string;
       app_version: string;
+      is_packaged: boolean;
+      resources_path: string;
     };
     CUSTOM_PACKS_DIR = globals.custom_dir;
     MV_PACK_LSID = globals.current_pack_store_id;
     APP_VERSION = globals.app_version;
+    if (globals.is_packaged) {
+      OFFICIAL_PACKS_DIR = path.join(globals.resources_path, 'audio');
+    }
 
     const version = document.getElementById('app-version')!;
     const update_available = document.getElementById('update-available')!;

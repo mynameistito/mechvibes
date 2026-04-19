@@ -5,7 +5,7 @@
   "description": "Play mechanical keyboard sounds as you type.",
   "repository": "https://github.com/hainguyents13/mechvibes",
   "type": "module",
-  "main": "dist/main.js",
+  "main": "dist/main/index.js",
   "scripts": {
     "build": "tsgo",
     "dev": "npm run build && electron .",
@@ -23,6 +23,11 @@
   },
   "license": "MIT",
   "build": {
+    "extraResources": [
+      { "from": "audio", "to": "audio" },
+      { "from": "src/renderer", "to": "src/renderer", "filter": ["**/*.html", "**/*.css"] },
+      { "from": "src/assets", "to": "src/assets" }
+    ],
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,

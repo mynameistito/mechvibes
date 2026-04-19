@@ -8,10 +8,10 @@ import Store from 'electron-store';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
 import type { UiohookKeyboardEvent } from 'uiohook-napi';
 import { TaggedError, Result } from 'better-result';
-import StartupHandler from './utils/startup_handler.js';
-import StoreToggle from './utils/store_toggle.js';
-import * as IpcServer from './utils/ipc.js';
-import remoteTransportFactory from './libs/electron-log/transports/remote.js';
+import StartupHandler from '../main-only/startup-handler.js';
+import StoreToggle from '../main-only/store-toggle.js';
+import * as IpcServer from '../main-only/ipc.js';
+import remoteTransportFactory from '../main-only/electron-log/remote-transport.js';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -27,8 +27,8 @@ function validateTheme(value: unknown): 'system' | 'light' | 'dark' {
 nativeTheme.themeSource = validateTheme(store.get('mechvibes-theme', 'system'));
 
 
-const SYSTRAY_ICON = path.join(__dirname, '../src/assets/system-tray-icon.png');
-const SYSTRAY_ICON_MUTED = path.join(__dirname, '../src/assets/system-tray-icon-muted.png');
+const SYSTRAY_ICON = path.join(__dirname, '../../src/assets/system-tray-icon.png');
+const SYSTRAY_ICON_MUTED = path.join(__dirname, '../../src/assets/system-tray-icon-muted.png');
 const user_dir = app.getPath('userData');
 const custom_dir = path.join(user_dir, '/custom');
 const current_pack_store_id = 'mechvibes-pack';
@@ -186,7 +186,7 @@ function createWindow(show = false): BrowserWindow {
     titleBarStyle: 'hidden',
     titleBarOverlay: true,
     webPreferences: {
-      preload: path.join(__dirname, 'app.js'),
+      preload: path.join(__dirname, '../renderer/app/index.js'),
       contextIsolation: false,
       nodeIntegration: true,
       webSecurity: false,
@@ -203,7 +203,7 @@ function createWindow(show = false): BrowserWindow {
     symbolColor: isDark ? '#e0e0e0' : '#333333',
   });
 
-  win.loadFile('./src/app.html');
+  win.loadFile('./src/renderer/app/index.html');
 
   win.webContents.on('did-finish-load', () => {
     if (debug.enabled) {
@@ -249,7 +249,7 @@ function openInstallWindow(packId: string) {
     height: 200,
     useContentSize: false,
     webPreferences: {
-      preload: path.join(__dirname, 'install.js'),
+      preload: path.join(__dirname, '../renderer/install/index.js'),
       contextIsolation: false,
       nodeIntegration: true,
       webSecurity: false,
@@ -259,7 +259,7 @@ function openInstallWindow(packId: string) {
   });
 
   installer.removeMenu();
-  installer.loadFile('./src/install.html');
+  installer.loadFile('./src/renderer/install/index.html');
 
   installer.webContents.on('did-finish-load', () => {
     installer!.webContents.send('install-pack', packId);
@@ -281,7 +281,7 @@ function createDebugWindow() {
     height: 500,
     useContentSize: false,
     webPreferences: {
-      preload: path.join(__dirname, 'debug.js'),
+      preload: path.join(__dirname, '../renderer/debug/index.js'),
       contextIsolation: false,
       nodeIntegration: true,
       webSecurity: false,
@@ -291,7 +291,7 @@ function createDebugWindow() {
   });
 
   debugWindow.removeMenu();
-  debugWindow.loadFile('./src/debug.html');
+  debugWindow.loadFile('./src/renderer/debug/index.html');
 
   debugWindow.webContents.on('did-finish-load', () => {
     const options = {
@@ -707,6 +707,8 @@ if (!gotTheLock) {
       custom_dir,
       current_pack_store_id,
       app_version: app.getVersion(),
+      is_packaged: app.isPackaged,
+      resources_path: process.resourcesPath,
     }));
 
     ipcMain.on('toggle-mute', () => {
@@ -902,11 +904,14 @@ function openEditorWindow() {
     width: 1200,
     height: 600,
     webPreferences: {
+      contextIsolation: false,
       nodeIntegration: true,
+      webSecurity: false,
+      preload: path.join(__dirname, '../renderer/editor/index.js'),
     },
   });
 
-  editor_window.loadFile('./src/editor.html');
+  editor_window.loadFile('./src/renderer/editor/index.html');
 
   editor_window.on('closed', function () {
     editor_window = null;

@@ -5,11 +5,11 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { shell } from 'electron';
 import Store from 'electron-store';
-import remapper from './utils/remapper.js';
-import { win32 as layoutWin32, darwin as layoutDarwin, linux as layoutLinux, sizes } from './libs/layouts.js';
-import { win32 as kcWin32, darwin as kcDarwin, linux as kcLinux } from './libs/keycodes.js';
-import type { Layout } from './libs/layouts.js';
-import type { KeycodeMap, Platform, KeyDefines } from './libs/keycodes.js';
+import remapper from '../../shared/remapper.js';
+import { win32 as layoutWin32, darwin as layoutDarwin, linux as layoutLinux, sizes } from '../../shared/layouts.js';
+import { win32 as kcWin32, darwin as kcDarwin, linux as kcLinux } from '../../shared/keycodes.js';
+import type { Layout } from '../../shared/layouts.js';
+import type { KeycodeMap, Platform, KeyDefines } from '../../shared/keycodes.js';
 export {};
 
 // jQuery is loaded via <script> tag in editor.html before this module runs
@@ -21,7 +21,7 @@ const kcByPlatform: Record<string, KeycodeMap> = { win32: kcWin32, darwin: kcDar
 const layout = layoutsByPlatform[process.platform] ?? layoutWin32;
 const os_keycode = kcByPlatform[process.platform] ?? kcWin32;
 
-const CUSTOM_PACKS_DIR = path.join(__dirname, '../../../custom');
+const CUSTOM_PACKS_DIR = path.join(__dirname, '../../../../custom');
 
 type DefineValue = [number, number] | string | null;
 

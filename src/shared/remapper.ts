@@ -1,4 +1,4 @@
-import type { Platform, KeyDefines } from '../libs/keycodes.js';
+import type { Platform, KeyDefines } from './keycodes.js';
 
 function remapper(
   from: 'standard' | Platform,
