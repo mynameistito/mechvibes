@@ -1,0 +1,29 @@
+src/renderer/app/index.html
+  d58f3cb4e2e5dea3 5,9-11
+src/renderer/app/index.tsx
+  d58f3cb4e2e5dea3 1-5
+src/renderer/tailwind.css
+  d58f3cb4e2e5dea3 2
+src/renderer/app/AppWindow.tsx
+  d58f3cb4e2e5dea3 1-562
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "6cdd6e0dcfd4ec10bcb13af963e4ba69fec1a148",
+  "prompts": {
+    "d58f3cb4e2e5dea3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "573abaa8-7928-49d8-8840-b64952bf9024",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 575,
+      "total_deletions": 122,
+      "accepted_lines": 572,
+      "overriden_lines": 0
+    }
+  }
+}
