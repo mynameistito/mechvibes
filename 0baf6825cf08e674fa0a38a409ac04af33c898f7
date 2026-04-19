@@ -1,0 +1,27 @@
+src/renderer/install/index.tsx
+  d58f3cb4e2e5dea3 1-5
+src/renderer/install/index.html
+  d58f3cb4e2e5dea3 9-11
+src/renderer/install/InstallWindow.tsx
+  d58f3cb4e2e5dea3 1,4,8,22-59,62,64-65,67-86,88,90-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "0baf6825cf08e674fa0a38a409ac04af33c898f7",
+  "prompts": {
+    "d58f3cb4e2e5dea3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "573abaa8-7928-49d8-8840-b64952bf9024",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 143,
+      "total_deletions": 178,
+      "accepted_lines": 143,
+      "overriden_lines": 0
+    }
+  }
+}
