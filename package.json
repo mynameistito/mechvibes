@@ -96,19 +96,26 @@
     "glob": "^13.0.6",
     "howler": "^2.2.4",
     "mime-types": "^3.0.2",
-    "uiohook-napi": "^1.5.5"
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "uiohook-napi": "^1.5.5",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
     "@types/adm-zip": "^0.5.8",
     "@types/fs-extra": "^11.0.4",
     "@types/howler": "^2.2.12",
     "@types/jquery": "^4.0.0",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@typescript/native-preview": "^7.0.0-dev.20260419.1",
     "electron": "^41.2.1",
     "electron-builder": "^26.8.1",
     "electron-vite": "^5.0.0",
+    "tailwindcss": "^4.2.2",
     "typescript": "^6.0.3"
   },
   "trustedDependencies": [

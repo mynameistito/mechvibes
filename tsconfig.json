@@ -5,6 +5,7 @@
     "moduleResolution": "NodeNext",
     "types": ["node", "jquery"],
     "strict": true,
+    "jsx": "react-jsx",
     "outDir": "dist",
     "rootDir": "src",
     "esModuleInterop": true,
