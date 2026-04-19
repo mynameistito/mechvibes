@@ -1,5 +1,6 @@
 import { BrowserWindow, Tray } from 'electron';
 import StoreToggle from '../main-only/store-toggle.js';
+import type { ParsedHotkey } from './services/hotkey.js';
 
 export interface AppState {
   win: BrowserWindow | null;
@@ -16,4 +17,5 @@ export interface AppState {
   pressedKeys: Record<string, boolean>;
   watchdogTimers: Record<string, ReturnType<typeof setTimeout>>;
   sysCheckInterval: ReturnType<typeof setInterval> | null;
+  parsedMuteHotkey: ParsedHotkey | null;
 }
