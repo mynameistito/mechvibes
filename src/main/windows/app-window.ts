@@ -13,7 +13,6 @@ export function createAppWindow(show: boolean, state: AppState, debug: DebugStat
     resizable: false,
     name: 'app',
     webPreferences: {
-      preload: path.join(__dirname, '../../renderer/app/index.js'),
       contextIsolation: false,
       nodeIntegration: true,
       webSecurity: false,
@@ -24,7 +23,11 @@ export function createAppWindow(show: boolean, state: AppState, debug: DebugStat
 
   state.win.removeMenu();
 
-  state.win.loadFile(path.join(app.getAppPath(), 'src', 'renderer', 'app', 'index.html'));
+  if (process.env.ELECTRON_RENDERER_URL) {
+    state.win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/app/index.html`);
+  } else {
+    state.win.loadFile(path.join(__dirname, '../../renderer/app/index.html'));
+  }
 
   state.win.webContents.on('did-finish-load', () => {
     if (debug.enabled) {

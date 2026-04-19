@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import log from 'electron-log';
 import type { AppState } from '../app-state.js';
@@ -19,7 +19,6 @@ export function createDebugWindow(state: AppState, debug: DebugState): void {
     height: 500,
     useContentSize: false,
     webPreferences: {
-      preload: path.join(__dirname, '../../renderer/debug/index.js'),
       contextIsolation: false,
       nodeIntegration: true,
       webSecurity: false,
@@ -29,7 +28,11 @@ export function createDebugWindow(state: AppState, debug: DebugState): void {
   });
 
   state.debugWindow.removeMenu();
-  state.debugWindow.loadFile(path.join(app.getAppPath(), 'src', 'renderer', 'debug', 'index.html'));
+  if (process.env.ELECTRON_RENDERER_URL) {
+    state.debugWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}/debug/index.html`);
+  } else {
+    state.debugWindow.loadFile(path.join(__dirname, '../../renderer/debug/index.html'));
+  }
 
   state.debugWindow.webContents.on('did-finish-load', () => {
     const options = {
