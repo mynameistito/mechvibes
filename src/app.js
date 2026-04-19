@@ -639,8 +639,8 @@ function packsToOptions(packs, pack_list) {
         clearTimeout(pressed_keys[`${keycode}`]);
       }
       pressed_keys[`${keycode}`] = setTimeout(() => releaseKey(keycode), 500);
+      app_logo.classList.add('pressed');
       if (!isRepeat) {
-        app_logo.classList.add('pressed');
         playSound({ type: "keydown", keycode }, volume.value);
       }
     });

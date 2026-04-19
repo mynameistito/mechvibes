@@ -545,7 +545,7 @@ if (!gotTheLock) {
       watchdogTimers[key] = setTimeout(() => {
         delete pressedKeys[key];
         delete watchdogTimers[key];
-      }, 500);
+      }, 2000);
 
       if (!muteState) {
         if (!isRepeat) {
