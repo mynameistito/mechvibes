@@ -285,7 +285,7 @@ function packsToOptions(packs, pack_list) {
       }
       // add pack to pack list
       const opt = document.createElement('option');
-      opt.text = pack.name;
+      opt.text = `${pack.name} [v${pack.config_version}]`;
       opt.value = pack.pack_id;
       opt.selected = is_selected ? 'selected' : false;
       optgroup.appendChild(opt);

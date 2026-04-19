@@ -25,6 +25,7 @@ class SoundpackConfig {
 		this.abs_path = meta.abs_path ?? null;
 		this.is_archive = meta.is_archive ?? null;
 		this.is_custom = meta.is_custom ?? null;
+		this.config_version = 1;
 
 		// check all the keys for any null values and throw an error if there are any
 		for (let key in this) {
