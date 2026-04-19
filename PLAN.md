@@ -291,27 +291,27 @@ Each commit moves one window's files and updates references. Process in isolatio
 
 ---
 
-### Phase 5 — Split main/index.ts into subsystems (1 commit per subsystem, 7 commits)
+### Phase 5 — Split main/index.ts into subsystems (partial — hotkey extracted)
 
-Extract in order (each a standalone commit that compiles and runs):
+Extracted in this phase:
+1. `services/hotkey.ts` — `parseHotkey()`, `matchesHotkey()`, `KEY_NAME_TO_CODES`, `ParsedHotkey` type (pure functions, no shared state)
 
-1. **`services/volume.ts`** — `pollVolume()`, `pollMute()`, volume interval logic
-2. **`services/hotkey.ts`** — `parseHotkey()`, `matchesHotkey()`, uIOhook listener, mute hotkey matching
-3. **`services/tray.ts`** — `createTrayIcon()`, `buildContextMenu()`, tray event handlers
-4. **`windows/app-window.ts`** — `createWindow()`
-5. **`windows/editor-window.ts`** — `openEditorWindow()`
-6. **`windows/install-window.ts`** — `openInstallWindow()`
-7. **`windows/debug-window.ts`** — `createDebugWindow()`
+Remaining extractions deferred to future work — volume, tray, and window creation functions are tightly coupled to shared mutable state (`win`, `tray`, `muteState`, `isQuiting`, `debug`). A state management layer (e.g. a shared state object or event emitter pattern) would be needed before these can be extracted cleanly.
 
-After extraction, `main/index.ts` becomes the orchestrator: imports from services + windows, runs `app.whenReady()`, registers IPC handlers, initializes modules.
+`main/index.ts` now imports `parseHotkey`, `matchesHotkey`, and `ParsedHotkey` from `./services/hotkey.js`.
 
-**Extraction pattern for each:**
-- Move the relevant function(s) and their local state into the new file.
-- Export the function and any shared state.
-- Import in `main/index.ts`.
-- Verify compilation and runtime after each extraction.
+---
 
-**Verify after each sub-commit:** `bun run build && bun run dev` — app still launches and the extracted subsystem still works.
+## Deferred: Further subsystem extraction
+
+These require shared state to be decoupled first:
+
+- `services/volume.ts` — depends on `win`, `muteState`, `OnBeforeQuit`, `app.exit(1)`
+- `services/tray.ts` — depends on `win`, `tray`, `muteState`, `SYSTRAY_ICON*`, `startup_handler`, `start_minimized`, `active_volume`, `openEditorWindow`, `shell`, `custom_dir`, `user_dir`, `isQuiting`, `sys_check_interval`
+- `windows/app-window.ts` — depends on `debug`, `active_volume`, `mute`, `isQuiting`
+- `windows/editor-window.ts` — relatively clean but references module-level `editor_window`
+- `windows/install-window.ts` — references `win` (parent), `installer` module-level var
+- `windows/debug-window.ts` — references `debug`, `debugConfigFile`, `log`
 
 ---
 
