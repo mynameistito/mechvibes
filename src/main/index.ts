@@ -61,8 +61,6 @@ const { debug, debugConfigFile } = initializeDebugAndLogging(state, user_dir);
 
 fs.ensureDirSync(custom_dir);
 
-createAppWindow(false, state, debug);
-
 const gotTheLock = app.requestSingleInstanceLock();
 app.on('second-instance', () => {
   if (state.win) {
