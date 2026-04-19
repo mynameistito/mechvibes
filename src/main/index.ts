@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, shell, ipcMain, nativeTheme, powerMonitor, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeTheme, powerMonitor, dialog } from 'electron';
 import * as path from 'path';
 import * as os from 'os';
 import fs from 'fs-extra';
@@ -8,6 +8,8 @@ import { uIOhook } from 'uiohook-napi';
 import type { UiohookKeyboardEvent } from 'uiohook-napi';
 import { parseHotkey, matchesHotkey, type ParsedHotkey } from './services/hotkey.js';
 import { startVolumePolling } from './services/volume.js';
+import { createTrayIcon, buildContextMenu, SYSTRAY_ICON, SYSTRAY_ICON_MUTED } from './services/tray.js';
+import type { TrayCallbacks } from './services/tray.js';
 import { Result } from 'better-result';
 import StartupHandler from '../main-only/startup-handler.js';
 import StoreToggle from '../main-only/store-toggle.js';
@@ -32,8 +34,6 @@ function validateTheme(value: unknown): 'system' | 'light' | 'dark' {
 nativeTheme.themeSource = validateTheme(store.get('mechvibes-theme', 'system'));
 
 
-const SYSTRAY_ICON = path.join(__dirname, '../../src/assets/system-tray-icon.png');
-const SYSTRAY_ICON_MUTED = path.join(__dirname, '../../src/assets/system-tray-icon-muted.png');
 const user_dir = app.getPath('userData');
 const custom_dir = path.join(user_dir, '/custom');
 const current_pack_store_id = 'mechvibes-pack';
@@ -342,121 +342,19 @@ if (!gotTheLock) {
       }
       if (state.tray !== null) {
         state.tray.setImage(state.muteState ? SYSTRAY_ICON_MUTED : SYSTRAY_ICON);
-        state.tray.setContextMenu(buildContextMenu());
+        state.tray.setContextMenu(buildContextMenu(state, startup_handler, user_dir, custom_dir, trayCallbacks));
       }
     }
 
-    function buildContextMenu(): Electron.Menu {
-      return Menu.buildFromTemplate([
-        {
-          label: 'Mechvibes',
-          click: function () {
-            if (process.platform === 'darwin') {
-              app.dock?.show();
-            }
-            state.win!.show();
-            state.win!.focus();
-          },
-        },
-        {
-          label: 'Editor',
-          click: function () {
-            openEditorWindow(state);
-          },
-        },
-        {
-          label: 'Folders',
-          submenu: [
-            {
-              label: 'Custom Soundpacks',
-              click: function () {
-                shell.openPath(custom_dir).then((err) => {
-                  if (err) log.error(err);
-                });
-              },
-            },
-            {
-              label: 'Application Data',
-              click: function () {
-                shell.openPath(user_dir).then((err) => {
-                  if (err) log.error(err);
-                });
-              },
-            },
-          ],
-        },
-        {
-          label: 'Mute',
-          type: 'checkbox',
-          checked: state.muteState,
-          click: function () {
-            toggleMute();
-          },
-        },
-        {
-          label: 'Extras',
-          submenu: [
-            {
-              label: 'Enable at Startup',
-              type: 'checkbox',
-              checked: startup_handler.is_enabled,
-              click: function () {
-                startup_handler.toggle();
-              },
-            },
-            {
-              label: 'Start Minimized',
-              type: 'checkbox',
-              checked: state.startMinimized.is_enabled,
-              click: function () {
-                state.startMinimized.toggle();
-              },
-            },
-            {
-              label: 'Active Volume Adjustment',
-              type: 'checkbox',
-              checked: state.activeVolume.is_enabled,
-              click: function () {
-                state.activeVolume.toggle();
-                state.win?.webContents.send('ava-toggle', state.activeVolume.is_enabled);
-              },
-            },
-          ],
-        },
-        {
-          label: 'Quit',
-          click: function () {
-            if (state.sysCheckInterval !== null) clearInterval(state.sysCheckInterval);
-            state.isQuiting = true;
-            app.quit();
-          },
-        },
-      ]);
-    }
-
-    function createTrayIcon() {
-      if (state.tray !== null) return;
-      state.tray = new Tray(state.muteState ? SYSTRAY_ICON_MUTED : SYSTRAY_ICON);
-      state.tray.setToolTip('Mechvibes');
-      const contextMenu = buildContextMenu();
-
-      if (process.platform === 'darwin') {
-        state.tray.on('click', () => {
-          state.tray!.popUpContextMenu(buildContextMenu());
-        });
-        state.tray.on('right-click', () => {
-          app.dock?.show();
-          state.win!.show();
-          state.win!.focus();
-        });
-      } else {
-        state.tray.setContextMenu(contextMenu);
-        state.tray.on('double-click', () => {
-          state.win!.show();
-          state.win!.focus();
-        });
-      }
-    }
+    const trayCallbacks: TrayCallbacks = {
+      toggleMute,
+      openEditorWindow: () => openEditorWindow(state),
+      onQuit: () => {
+        if (state.sysCheckInterval !== null) clearInterval(state.sysCheckInterval);
+        state.isQuiting = true;
+        app.quit();
+      },
+    };
 
     ipcMain.handle('get-globals', () => ({
       custom_dir,
@@ -486,7 +384,7 @@ if (!gotTheLock) {
         startup_handler.disable();
       }
       if (state.tray !== null) {
-        state.tray.setContextMenu(buildContextMenu());
+        state.tray.setContextMenu(buildContextMenu(state, startup_handler, user_dir, custom_dir, trayCallbacks));
       }
     });
 
@@ -517,12 +415,12 @@ if (!gotTheLock) {
 
     ipcMain.on('show_tray_icon', (_event, show: boolean) => {
       if (show && state.tray === null) {
-        createTrayIcon();
+        createTrayIcon(state, startup_handler, user_dir, custom_dir, trayCallbacks);
       } else if (!show && state.tray !== null) {
         state.tray.destroy();
         state.tray = null;
       } else if (!show && state.tray === null) {
-        createTrayIcon();
+        createTrayIcon(state, startup_handler, user_dir, custom_dir, trayCallbacks);
       }
     });
 
