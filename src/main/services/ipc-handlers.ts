@@ -78,14 +78,6 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   ipcMain.on('set-theme', (_event, theme: string) => {
     if (!(['system', 'light', 'dark'] as const).includes(theme as 'system')) return;
     nativeTheme.themeSource = theme as 'system' | 'light' | 'dark';
-    if (state.win && !state.win.isDestroyed() && typeof (state.win as unknown as Record<string, unknown>)['setTitleBarOverlay'] === 'function') {
-      const useDark = nativeTheme.shouldUseDarkColors;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (state.win as any).setTitleBarOverlay({
-        color: useDark ? '#1a1a1a' : '#f0f0f0',
-        symbolColor: useDark ? '#e0e0e0' : '#333333',
-      });
-    }
   });
 
   ipcMain.on('show_tray_icon', (_event, show: boolean) => {

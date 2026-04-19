@@ -1,35 +1,4 @@
-.titlebar {
-  -webkit-app-region: drag;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  gap: 6px;
-  background: #f0f0f0;
-  color: #333;
-  font-size: 12px;
-  user-select: none;
-}
 
-.titlebar-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.titlebar-title {
-  font-size: 12px;
-}
-
-
-/* interactive elements inside titlebar must opt out of drag */
-.titlebar select,
-.titlebar input,
-.titlebar a,
-.titlebar button,
-.titlebar .checkbox-group,
-.titlebar .slider {
-  -webkit-app-region: no-drag;
-}
 
 a,
 a:hover {
@@ -279,10 +248,7 @@ table {
 }
 
 /* Dark mode */
-body.dark .titlebar {
-  background: #1a1a1a;
-  color: #e0e0e0;
-}
+
 
 
 body.dark {

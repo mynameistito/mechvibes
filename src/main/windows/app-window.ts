@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeTheme } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
 import type { AppState } from '../app-state.js';
 import type { DebugState } from './debug-state.js';
@@ -10,9 +10,8 @@ export function createAppWindow(show: boolean, state: AppState, debug: DebugStat
   state.win = new BrowserWindow({
     width: 400,
     height: 720,
+    resizable: false,
     backgroundThrottling: false,
-    titleBarStyle: 'hidden',
-    titleBarOverlay: true,
     webPreferences: {
       preload: path.join(__dirname, '../../renderer/app/index.js'),
       contextIsolation: false,
@@ -24,12 +23,6 @@ export function createAppWindow(show: boolean, state: AppState, debug: DebugStat
   (state.win as unknown as { _name: string })._name = 'app';
 
   state.win.removeMenu();
-
-  const isDark = nativeTheme.shouldUseDarkColors;
-  state.win.setTitleBarOverlay({
-    color: isDark ? '#1a1a1a' : '#f0f0f0',
-    symbolColor: isDark ? '#e0e0e0' : '#333333',
-  });
 
   state.win.loadFile('./src/renderer/app/index.html');
 
