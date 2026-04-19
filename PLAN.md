@@ -291,27 +291,151 @@ Each commit moves one window's files and updates references. Process in isolatio
 
 ---
 
-### Phase 5 — Split main/index.ts into subsystems (partial — hotkey extracted)
+### Phase 5 — Done: hotkey extracted
 
-Extracted in this phase:
-1. `services/hotkey.ts` — `parseHotkey()`, `matchesHotkey()`, `KEY_NAME_TO_CODES`, `ParsedHotkey` type (pure functions, no shared state)
-
-Remaining extractions deferred to future work — volume, tray, and window creation functions are tightly coupled to shared mutable state (`win`, `tray`, `muteState`, `isQuiting`, `debug`). A state management layer (e.g. a shared state object or event emitter pattern) would be needed before these can be extracted cleanly.
-
-`main/index.ts` now imports `parseHotkey`, `matchesHotkey`, and `ParsedHotkey` from `./services/hotkey.js`.
+`services/hotkey.ts` — `parseHotkey()`, `matchesHotkey()`, `KEY_NAME_TO_CODES`, `ParsedHotkey` type extracted. Pure functions, no shared state.
 
 ---
 
-## Deferred: Further subsystem extraction
+### Phase 6 — Extract remaining subsystems via AppState pattern
 
-These require shared state to be decoupled first:
+`main/index.ts` is 852 lines with 6 module-level mutable variables (`win`, `tray`, `installer`, `debugWindow`, `editor_window`, `isQuiting`) and 3 StoreToggle instances (`mute`, `start_minimized`, `active_volume`) read/written from deeply nested closures — IPC handlers, keyboard hooks, tray menu callbacks, window event handlers. These create circular dependencies that block extraction.
 
-- `services/volume.ts` — depends on `win`, `muteState`, `OnBeforeQuit`, `app.exit(1)`
-- `services/tray.ts` — depends on `win`, `tray`, `muteState`, `SYSTRAY_ICON*`, `startup_handler`, `start_minimized`, `active_volume`, `openEditorWindow`, `shell`, `custom_dir`, `user_dir`, `isQuiting`, `sys_check_interval`
-- `windows/app-window.ts` — depends on `debug`, `active_volume`, `mute`, `isQuiting`
-- `windows/editor-window.ts` — relatively clean but references module-level `editor_window`
-- `windows/install-window.ts` — references `win` (parent), `installer` module-level var
-- `windows/debug-window.ts` — references `debug`, `debugConfigFile`, `log`
+**Strategy:** Introduce a single `AppState` object. All subsystems receive it as a dependency. This breaks circular coupling — subsystems don't reference each other, they reference shared state.
+
+#### Module-level mutable state (dependency map)
+
+| Variable | Type | Written by | Read by |
+|----------|------|-----------|---------|
+| `win` | `BrowserWindow \| null` | `createWindow()`, win close/closed | volume polling, key forwarding, debug, tray, IPC, activate, close |
+| `tray` | `Tray \| null` | `createTrayIcon()`, show_tray_icon IPC | `toggleMute()`, `buildContextMenu()` |
+| `installer` | `BrowserWindow \| null` | `openInstallWindow()`, installed IPC | protocol handler, installed/resize IPC |
+| `debugWindow` | `BrowserWindow \| null` | `createDebugWindow()`, closed | `debug.enable()`, fetch-debug-options IPC |
+| `editor_window` | `BrowserWindow \| null` | `openEditorWindow()`, closed | tray menu |
+| `isQuiting` | `boolean` | quit menu item, `OnBeforeQuit` | win close handler |
+
+#### Key coupling points
+
+- **`toggleMute()`** — reads/writes `muteState`, `mute`, `win`, `tray`, `watchdogTimers`, `pressedKeys`
+- **`buildContextMenu()`** — reads `muteState`, `startup_handler`, `start_minimized`, `active_volume`, `win`; calls `toggleMute()`, `openEditorWindow()`
+- **`createTrayIcon()`** — reads `muteState`, `win`, `tray`; calls `buildContextMenu()`
+- **Volume polling** — reads `muteState`, `win`; calls `OnBeforeQuit()`, `app.exit(1)`
+
+#### Phase 6a — Introduce AppState (1 commit)
+
+Create `src/main/app-state.ts`:
+
+```typescript
+import { BrowserWindow, Tray } from 'electron';
+import StoreToggle from '../main-only/store-toggle.js';
+
+export interface AppState {
+  win: BrowserWindow | null;
+  tray: Tray | null;
+  installer: BrowserWindow | null;
+  debugWindow: BrowserWindow | null;
+  editorWindow: BrowserWindow | null;
+  isQuiting: boolean;
+  muteState: boolean;
+  mute: StoreToggle;
+  startMinimized: StoreToggle;
+  activeVolume: StoreToggle;
+  hotkeyPhysicallyDown: boolean;
+  pressedKeys: Record<string, boolean>;
+  watchdogTimers: Record<string, ReturnType<typeof setTimeout>>;
+  sysCheckInterval: ReturnType<typeof setInterval> | null;
+}
+```
+
+In `main/index.ts`: replace all module-level `let win`, `let tray`, etc. with `const state: AppState = { ... }`. All closures reference `state.win`, `state.tray`, etc. instead. This is a search-and-replace refactor — no behavioral changes.
+
+**Why this works:** JS closures capture the `state` object reference, not the value. When `createWindow()` sets `state.win = newWin`, the volume polling closure reading `state.win` immediately sees the new value. Same semantics as current module-level variables.
+
+**Verify:** `bun run build` compiles. `bun run dev` — full manual test.
+
+#### Phase 6b — Extract windows (1 commit per window, 4 commits)
+
+Each window function takes `AppState` as parameter instead of referencing module-level vars.
+
+| File | Signature | State dependencies |
+|------|-----------|-------------------|
+| `windows/editor-window.ts` | `openEditorWindow(state: AppState): void` | Sets `state.editorWindow`. Cleanest extraction — no other state coupling. |
+| `windows/install-window.ts` | `openInstallWindow(packId: string, state: AppState): void` | Sets `state.installer`. Reads `state.win` for parent. |
+| `windows/debug-window.ts` | `createDebugWindow(state: AppState, debug, debugConfigFile, log): void` | Sets `state.debugWindow`. Reads `state.win` for parent. Houses `DebugState`. |
+| `windows/app-window.ts` | `createAppWindow(show: boolean, state: AppState, debug): BrowserWindow` | Sets `state.win`. Reads `state.isQuiting`, `state.activeVolume`, `state.mute` for did-finish-load. |
+
+**Verify after each:** `bun run build && bun run dev` — test the extracted window.
+
+#### Phase 6c — Extract volume polling (1 commit)
+
+`services/volume.ts` — `startVolumePolling(state: AppState, log, onFatalError: () => void): ReturnType<typeof setInterval>`
+
+- Receives `state` to read `state.win`, `state.muteState`
+- Returns interval ID so caller can clear on quit
+- Fatal mute error handled via `onFatalError` callback instead of directly calling `OnBeforeQuit()` / `app.exit(1)`
+- `VolumeError` class moves here
+
+**Verify:** `bun run build && bun run dev` — volume indicator updates in UI.
+
+#### Phase 6d — Extract tray (1 commit)
+
+`services/tray.ts` — `createTrayIcon(state: AppState, callbacks: TrayCallbacks): void`
+
+`buildContextMenu()` calls `openEditorWindow()` and `toggleMute()`, so these are injected as callbacks:
+
+```typescript
+export interface TrayCallbacks {
+  toggleMute: () => void;
+  openEditorWindow: () => void;
+}
+```
+
+In `main/index.ts`, the orchestrator passes concrete implementations:
+```typescript
+createTrayIcon(state, {
+  toggleMute,
+  openEditorWindow: () => openEditorWindow(state),
+});
+```
+
+**Verify:** `bun run build && bun run dev` — tray icon, context menu, mute toggle all work.
+
+#### Phase 6e — Final orchestrator cleanup (1 commit)
+
+After all extractions, `main/index.ts` becomes a slim orchestrator (~250 lines):
+1. Creates `AppState`
+2. Initializes logging, debug, store toggles
+3. Sets up `app.whenReady()` which creates windows, starts volume polling, creates tray
+4. Wires up `toggleMute()`, `openEditorWindow()`, `OnBeforeQuit()`
+5. Registers IPC handlers (or extract to `ipc-handlers.ts`)
+
+**Verify:** Full manual test of all features.
+
+#### Target structure
+
+```
+src/main/
+├── index.ts                 # orchestrator (~250 lines)
+├── app-state.ts             # shared mutable state interface
+├── services/
+│   ├── hotkey.ts            # ✅ already extracted
+│   ├── volume.ts            # pollVolume, pollMute, VolumeError
+│   └── tray.ts              # createTrayIcon, buildContextMenu
+├── windows/
+│   ├── app-window.ts        # createAppWindow
+│   ├── editor-window.ts     # openEditorWindow
+│   ├── install-window.ts    # openInstallWindow
+│   └── debug-window.ts      # createDebugWindow + DebugState
+```
+
+#### Risk analysis
+
+| Risk | Mitigation |
+|------|-------------|
+| Closures capturing stale references | AppState is an object — closures capture the reference, property mutations are visible to all readers. Same semantics as module-level vars. |
+| `this` binding in `DebugState.enable()/disable()` | Already use `debug.` not `this.` — convert to standalone functions with explicit `debug` param |
+| `toggleMute` needs both state and tray | Stays in orchestrator as wiring point between keyboard hooks, tray icon, and window messages |
+| Window close handlers set `state.win = null` | Same pattern as current `win = null` — works fine |
 
 ---
 

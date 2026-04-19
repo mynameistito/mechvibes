@@ -13,6 +13,7 @@ import StartupHandler from '../main-only/startup-handler.js';
 import StoreToggle from '../main-only/store-toggle.js';
 import * as IpcServer from '../main-only/ipc.js';
 import remoteTransportFactory from '../main-only/electron-log/remote-transport.js';
+import type { AppState } from './app-state.js';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -42,6 +43,22 @@ const MUTE_HOTKEY_STORE_ID = 'mechvibes-mute-hotkey';
 const DEFAULT_MUTE_HOTKEY = 'CommandOrControl+Shift+M';
 const storage_prompted = new StoreToggle('mechvibes-migrate-asked', false);
 
+const state: AppState = {
+  win: null,
+  tray: null,
+  installer: null,
+  debugWindow: null,
+  editorWindow: null,
+  isQuiting: false,
+  muteState: mute.is_enabled,
+  mute,
+  startMinimized: start_minimized,
+  activeVolume: active_volume,
+  hotkeyPhysicallyDown: false,
+  pressedKeys: {},
+  watchdogTimers: {},
+  sysCheckInterval: null,
+};
 
 interface DebugState {
   enabled: boolean;
@@ -50,6 +67,8 @@ interface DebugState {
   enable(): Promise<void>;
   disable(): void;
 }
+
+const debugConfigFile = path.join(user_dir, '/remote-debug.json');
 
 const debug: DebugState = {
   enabled: false,
@@ -81,8 +100,8 @@ const debug: DebugState = {
           level: (log.transports as any).remote.level,
           identifier: debug.identifier,
         };
-        if (debugWindow !== null) {
-          debugWindow.webContents.send('debug-update', options);
+        if (state.debugWindow !== null) {
+          state.debugWindow.webContents.send('debug-update', options);
         }
       } else {
         this.enabled = false;
@@ -104,8 +123,8 @@ const debug: DebugState = {
         fs.unlinkSync(debugConfigFile);
       }
     }
-    if (win !== null) {
-      win.webContents.send('debug-in-use', true);
+    if (state.win !== null) {
+      state.win.webContents.send('debug-in-use', true);
     }
   },
   disable() {
@@ -116,8 +135,8 @@ const debug: DebugState = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (log.transports as any).remote.client.identifier = undefined;
     fs.unlinkSync(debugConfigFile);
-    if (win !== null) {
-      win.webContents.send('debug-in-use', false);
+    if (state.win !== null) {
+      state.win.webContents.send('debug-in-use', false);
     }
   },
 };
@@ -131,7 +150,6 @@ for (const transportName in log.transports) {
   (log.transports as any)[transportName].transportName = transportName;
 }
 
-const debugConfigFile = path.join(user_dir, '/remote-debug.json');
 if (fs.existsSync(debugConfigFile)) {
   const json = JSON.parse(fs.readFileSync(debugConfigFile, 'utf8')) as { identifier?: string; enabled?: boolean };
   console.log(json);
@@ -154,7 +172,7 @@ log.transports.file.level = 'info';
 };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (log as any).variables.sender = 'main';
-log.transports.console.format = '%c{h}:{i}:{s}.{ms}%c {sender} › {text}';
+log.transports.console.format = '%c{h}:{i}:{s}.{ms}%c {sender} \u203a {text}';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (log.transports as any).file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}]({sender}) {text}';
 
@@ -172,15 +190,11 @@ log.hooks.push((msg, transport: any) => {
   return msg;
 });
 
-let win: BrowserWindow | null = null;
-let tray: Tray | null = null;
-let isQuiting = false;
-
 fs.ensureDirSync(custom_dir);
 
 function createWindow(show = false): BrowserWindow {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  win = new BrowserWindow({
+  state.win = new BrowserWindow({
     width: 400,
     height: 720,
     backgroundThrottling: false,
@@ -194,58 +208,57 @@ function createWindow(show = false): BrowserWindow {
     },
     show: false,
   } as Electron.BrowserWindowConstructorOptions & { name?: string });
-  (win as unknown as { _name: string })._name = 'app';
+  (state.win as unknown as { _name: string })._name = 'app';
 
-  win.removeMenu();
+  state.win.removeMenu();
 
   const isDark = nativeTheme.shouldUseDarkColors;
-  win.setTitleBarOverlay({
+  state.win.setTitleBarOverlay({
     color: isDark ? '#1a1a1a' : '#f0f0f0',
     symbolColor: isDark ? '#e0e0e0' : '#333333',
   });
 
-  win.loadFile('./src/renderer/app/index.html');
+  state.win.loadFile('./src/renderer/app/index.html');
 
-  win.webContents.on('did-finish-load', () => {
+  state.win.webContents.on('did-finish-load', () => {
     if (debug.enabled) {
-      win!.webContents.send('debug-in-use', true);
+      state.win!.webContents.send('debug-in-use', true);
     }
-    win!.webContents.send('ava-toggle', active_volume.is_enabled);
-    win!.webContents.send('mechvibes-mute-status', mute.is_enabled);
+    state.win!.webContents.send('ava-toggle', state.activeVolume.is_enabled);
+    state.win!.webContents.send('mechvibes-mute-status', state.mute.is_enabled);
   });
 
-  win.on('closed', function () {
-    win = null;
+  state.win.on('closed', function () {
+    state.win = null;
   });
 
-  win.on('close', function (event) {
-    if (!isQuiting) {
+  state.win.on('close', function (event) {
+    if (!state.isQuiting) {
       if (process.platform === 'darwin') {
         app.dock?.hide();
       }
       event.preventDefault();
-      win!.hide();
+      state.win!.hide();
     }
     return false;
   });
 
-  win.on('unresponsive', () => {
+  state.win.on('unresponsive', () => {
     log.warn('Window has entered unresponsive state');
     console.log('unresponsive');
   });
 
   if (show) {
-    win.show();
+    state.win.show();
   } else {
-    win.close();
+    state.win.close();
   }
 
-  return win;
+  return state.win;
 }
 
-let installer: BrowserWindow | null = null;
 function openInstallWindow(packId: string) {
-  installer = new BrowserWindow({
+  state.installer = new BrowserWindow({
     width: 300,
     height: 200,
     useContentSize: false,
@@ -256,28 +269,27 @@ function openInstallWindow(packId: string) {
       webSecurity: false,
     },
     show: false,
-    parent: win ?? undefined,
+    parent: state.win ?? undefined,
   });
 
-  installer.removeMenu();
-  installer.loadFile('./src/renderer/install/index.html');
+  state.installer.removeMenu();
+  state.installer.loadFile('./src/renderer/install/index.html');
 
-  installer.webContents.on('did-finish-load', () => {
-    installer!.webContents.send('install-pack', packId);
+  state.installer.webContents.on('did-finish-load', () => {
+    state.installer!.webContents.send('install-pack', packId);
   });
 
-  installer.on('ready-to-show', () => {
-    installer!.show();
+  state.installer.on('ready-to-show', () => {
+    state.installer!.show();
   });
 
-  installer.on('closed', function () {
-    installer = null;
+  state.installer.on('closed', function () {
+    state.installer = null;
   });
 }
 
-let debugWindow: BrowserWindow | null = null;
 function createDebugWindow() {
-  debugWindow = new BrowserWindow({
+  state.debugWindow = new BrowserWindow({
     width: 350,
     height: 500,
     useContentSize: false,
@@ -288,55 +300,55 @@ function createDebugWindow() {
       webSecurity: false,
     },
     show: false,
-    parent: win ?? undefined,
+    parent: state.win ?? undefined,
   });
 
-  debugWindow.removeMenu();
-  debugWindow.loadFile('./src/renderer/debug/index.html');
+  state.debugWindow.removeMenu();
+  state.debugWindow.loadFile('./src/renderer/debug/index.html');
 
-  debugWindow.webContents.on('did-finish-load', () => {
+  state.debugWindow.webContents.on('did-finish-load', () => {
     const options = {
       enabled: debug.enabled,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       level: (log.transports as any).remote.level,
       identifier: debug.identifier,
     };
-    debugWindow!.webContents.send('debug-options', options);
+    state.debugWindow!.webContents.send('debug-options', options);
   });
 
   ipcMain.on('fetch-debug-options', () => {
     const options = { ...debug, path: debugConfigFile };
-    debugWindow?.webContents.send('debug-options', options);
+    state.debugWindow?.webContents.send('debug-options', options);
   });
 
-  debugWindow.on('ready-to-show', () => {
-    debugWindow!.show();
+  state.debugWindow.on('ready-to-show', () => {
+    state.debugWindow!.show();
   });
 
-  debugWindow.on('closed', function () {
-    debugWindow = null;
+  state.debugWindow.on('closed', function () {
+    state.debugWindow = null;
   });
 }
 
 const gotTheLock = app.requestSingleInstanceLock();
 app.on('second-instance', () => {
-  if (win) {
+  if (state.win) {
     if (process.platform === 'darwin') {
       app.dock?.show();
     }
-    win.show();
-    win.focus();
+    state.win.show();
+    state.win.focus();
   }
 });
 
 const protocolCommands: Record<string, (...args: string[]) => void> = {
   install(packId: string) {
-    if (installer === null) {
+    if (state.installer === null) {
       log.debug(`Processing request to install ${packId}...`);
       openInstallWindow(packId);
     } else {
-      installer.focus();
-      installer.webContents.send('install-pack', packId);
+      state.installer.focus();
+      state.installer.webContents.send('install-pack', packId);
     }
   },
 };
@@ -349,7 +361,7 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (_event, commandLine) => {
-    if (win) {
+    if (state.win) {
       if (process.platform === 'darwin') {
         app.dock?.show();
       } else {
@@ -361,11 +373,11 @@ if (!gotTheLock) {
           }
         }
       }
-      if (win.isMinimized()) {
-        win.restore();
+      if (state.win.isMinimized()) {
+        state.win.restore();
       }
-      win.show();
-      win.focus();
+      state.win.show();
+      state.win.focus();
     }
   });
 
@@ -382,18 +394,18 @@ if (!gotTheLock) {
     const startup_handler = new StartupHandler(app);
 
     log.silly('Creating main window for the first time...');
-    if (startup_handler.was_started_at_login && start_minimized.is_enabled) {
-      win = createWindow(false);
+    if (startup_handler.was_started_at_login && state.startMinimized.is_enabled) {
+      state.win = createWindow(false);
     } else {
-      win = createWindow(true);
+      state.win = createWindow(true);
     }
 
     let parsedMuteHotkey = parseHotkey(store.get(MUTE_HOTKEY_STORE_ID, DEFAULT_MUTE_HOTKEY) as string);
 
-    let muteState = mute.is_enabled;
-    let hotkeyPhysicallyDown = false;
-    let pressedKeys: Record<string, boolean> = {};
-    let watchdogTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+    state.muteState = mute.is_enabled;
+    state.hotkeyPhysicallyDown = false;
+    state.pressedKeys = {};
+    state.watchdogTimers = {};
 
     uIOhook.start();
 
@@ -407,7 +419,7 @@ if (!gotTheLock) {
           const v = await getVolume();
           if (v !== volumeLevel) {
             volumeLevel = v;
-            win?.webContents.send('system-volume-update', volumeLevel);
+            state.win?.webContents.send('system-volume-update', volumeLevel);
           }
         },
         catch: (e) => new VolumeError({ message: String(e), source: 'get' }),
@@ -420,18 +432,18 @@ if (!gotTheLock) {
           const m = await getMute();
           if (m !== system_mute) {
             system_mute = m;
-            win?.webContents.send('system-mute-status', system_mute);
+            state.win?.webContents.send('system-mute-status', system_mute);
           }
         },
         catch: (e) => new VolumeError({ message: String(e), source: 'mute' }),
       });
     };
 
-    const sys_check_interval = setInterval(async () => {
-      if (!muteState) {
+    state.sysCheckInterval = setInterval(async () => {
+      if (!state.muteState) {
         const volResult = await pollVolume();
         if (!Result.isOk(volResult)) {
-          clearInterval(sys_check_interval);
+          if (state.sysCheckInterval !== null) clearInterval(state.sysCheckInterval);
           const err = volResult.error.message;
           if (err === '' && !system_volume_error) {
             system_volume_error = true;
@@ -441,7 +453,7 @@ if (!gotTheLock) {
 
         const muteResult = await pollMute();
         if (!Result.isOk(muteResult)) {
-          clearInterval(sys_check_interval);
+          if (state.sysCheckInterval !== null) clearInterval(state.sysCheckInterval);
           const err = muteResult.error.message;
           if (err === '' && !system_volume_error) {
             system_volume_error = true;
@@ -455,30 +467,30 @@ if (!gotTheLock) {
 
     uIOhook.on('keydown', (event: UiohookKeyboardEvent) => {
       if (matchesHotkey(event, parsedMuteHotkey)) {
-        if (!hotkeyPhysicallyDown) {
-          hotkeyPhysicallyDown = true;
+        if (!state.hotkeyPhysicallyDown) {
+          state.hotkeyPhysicallyDown = true;
           toggleMute();
         }
         return;
       }
       const key = `${event.keycode}`;
-      const isRepeat = !!pressedKeys[key];
+      const isRepeat = !!state.pressedKeys[key];
 
-      if (watchdogTimers[key]) clearTimeout(watchdogTimers[key]);
-      watchdogTimers[key] = setTimeout(() => {
-        delete pressedKeys[key];
-        delete watchdogTimers[key];
+      if (state.watchdogTimers[key]) clearTimeout(state.watchdogTimers[key]);
+      state.watchdogTimers[key] = setTimeout(() => {
+        delete state.pressedKeys[key];
+        delete state.watchdogTimers[key];
       }, 2000);
 
-      if (!muteState) {
+      if (!state.muteState) {
         if (!isRepeat) {
-          if (win && !win.isDestroyed()) {
-            pressedKeys[key] = true;
-            win.webContents.send('keydown', { ...event, isRepeat: false });
+          if (state.win && !state.win.isDestroyed()) {
+            state.pressedKeys[key] = true;
+            state.win.webContents.send('keydown', { ...event, isRepeat: false });
           }
         } else {
-          if (win && !win.isDestroyed()) {
-            win.webContents.send('keydown', { ...event, isRepeat: true });
+          if (state.win && !state.win.isDestroyed()) {
+            state.win.webContents.send('keydown', { ...event, isRepeat: true });
           }
         }
       }
@@ -486,41 +498,41 @@ if (!gotTheLock) {
 
     uIOhook.on('keyup', (event: UiohookKeyboardEvent) => {
       if (parsedMuteHotkey && parsedMuteHotkey.keycodes.includes(event.keycode)) {
-        hotkeyPhysicallyDown = false;
+        state.hotkeyPhysicallyDown = false;
       }
       const key = `${event.keycode}`;
-      if (watchdogTimers[key]) {
-        clearTimeout(watchdogTimers[key]);
-        delete watchdogTimers[key];
+      if (state.watchdogTimers[key]) {
+        clearTimeout(state.watchdogTimers[key]);
+        delete state.watchdogTimers[key];
       }
-      if (!muteState) {
-        pressedKeys[key] = false;
-        if (win && !win.isDestroyed()) {
-          win.webContents.send('keyup', event);
+      if (!state.muteState) {
+        state.pressedKeys[key] = false;
+        if (state.win && !state.win.isDestroyed()) {
+          state.win.webContents.send('keyup', event);
         }
       }
     });
 
     function toggleMute() {
-      muteState = !muteState;
-      if (muteState) {
-        mute.enable();
-        for (const t of Object.values(watchdogTimers)) clearTimeout(t);
-        watchdogTimers = {};
-        pressedKeys = {};
+      state.muteState = !state.muteState;
+      if (state.muteState) {
+        state.mute.enable();
+        for (const t of Object.values(state.watchdogTimers)) clearTimeout(t);
+        state.watchdogTimers = {};
+        state.pressedKeys = {};
       } else {
-        mute.disable();
+        state.mute.disable();
       }
-      log.info(`Mute toggled: ${muteState}`);
-      if (win && !win.isDestroyed()) {
-        win.webContents.send('mechvibes-mute-status', muteState);
-        if (muteState) {
-          win.webContents.send('clear-pressed-keys');
+      log.info(`Mute toggled: ${state.muteState}`);
+      if (state.win && !state.win.isDestroyed()) {
+        state.win.webContents.send('mechvibes-mute-status', state.muteState);
+        if (state.muteState) {
+          state.win.webContents.send('clear-pressed-keys');
         }
       }
-      if (tray !== null) {
-        tray.setImage(muteState ? SYSTRAY_ICON_MUTED : SYSTRAY_ICON);
-        tray.setContextMenu(buildContextMenu());
+      if (state.tray !== null) {
+        state.tray.setImage(state.muteState ? SYSTRAY_ICON_MUTED : SYSTRAY_ICON);
+        state.tray.setContextMenu(buildContextMenu());
       }
     }
 
@@ -532,8 +544,8 @@ if (!gotTheLock) {
             if (process.platform === 'darwin') {
               app.dock?.show();
             }
-            win!.show();
-            win!.focus();
+            state.win!.show();
+            state.win!.focus();
           },
         },
         {
@@ -566,7 +578,7 @@ if (!gotTheLock) {
         {
           label: 'Mute',
           type: 'checkbox',
-          checked: muteState,
+          checked: state.muteState,
           click: function () {
             toggleMute();
           },
@@ -585,18 +597,18 @@ if (!gotTheLock) {
             {
               label: 'Start Minimized',
               type: 'checkbox',
-              checked: start_minimized.is_enabled,
+              checked: state.startMinimized.is_enabled,
               click: function () {
-                start_minimized.toggle();
+                state.startMinimized.toggle();
               },
             },
             {
               label: 'Active Volume Adjustment',
               type: 'checkbox',
-              checked: active_volume.is_enabled,
+              checked: state.activeVolume.is_enabled,
               click: function () {
-                active_volume.toggle();
-                win?.webContents.send('ava-toggle', active_volume.is_enabled);
+                state.activeVolume.toggle();
+                state.win?.webContents.send('ava-toggle', state.activeVolume.is_enabled);
               },
             },
           ],
@@ -604,8 +616,8 @@ if (!gotTheLock) {
         {
           label: 'Quit',
           click: function () {
-            clearInterval(sys_check_interval);
-            isQuiting = true;
+            if (state.sysCheckInterval !== null) clearInterval(state.sysCheckInterval);
+            state.isQuiting = true;
             app.quit();
           },
         },
@@ -613,25 +625,25 @@ if (!gotTheLock) {
     }
 
     function createTrayIcon() {
-      if (tray !== null) return;
-      tray = new Tray(muteState ? SYSTRAY_ICON_MUTED : SYSTRAY_ICON);
-      tray.setToolTip('Mechvibes');
+      if (state.tray !== null) return;
+      state.tray = new Tray(state.muteState ? SYSTRAY_ICON_MUTED : SYSTRAY_ICON);
+      state.tray.setToolTip('Mechvibes');
       const contextMenu = buildContextMenu();
 
       if (process.platform === 'darwin') {
-        tray.on('click', () => {
-          tray!.popUpContextMenu(buildContextMenu());
+        state.tray.on('click', () => {
+          state.tray!.popUpContextMenu(buildContextMenu());
         });
-        tray.on('right-click', () => {
+        state.tray.on('right-click', () => {
           app.dock?.show();
-          win!.show();
-          win!.focus();
+          state.win!.show();
+          state.win!.focus();
         });
       } else {
-        tray.setContextMenu(contextMenu);
-        tray.on('double-click', () => {
-          win!.show();
-          win!.focus();
+        state.tray.setContextMenu(contextMenu);
+        state.tray.on('double-click', () => {
+          state.win!.show();
+          state.win!.focus();
         });
       }
     }
@@ -649,7 +661,7 @@ if (!gotTheLock) {
     });
 
     ipcMain.on('get-mute-status', (event) => {
-      event.reply('mechvibes-mute-status', muteState);
+      event.reply('mechvibes-mute-status', state.muteState);
       event.reply('mute-hotkey', store.get(MUTE_HOTKEY_STORE_ID, DEFAULT_MUTE_HOTKEY));
     });
 
@@ -663,8 +675,8 @@ if (!gotTheLock) {
       } else {
         startup_handler.disable();
       }
-      if (tray !== null) {
-        tray.setContextMenu(buildContextMenu());
+      if (state.tray !== null) {
+        state.tray.setContextMenu(buildContextMenu());
       }
     });
 
@@ -676,17 +688,17 @@ if (!gotTheLock) {
       }
       store.set(MUTE_HOTKEY_STORE_ID, hotkey);
       parsedMuteHotkey = parsed;
-      hotkeyPhysicallyDown = false;
+      state.hotkeyPhysicallyDown = false;
       log.info(`Mute hotkey updated to: ${hotkey}`);
     });
 
     ipcMain.on('set-theme', (_event, theme: string) => {
       if (!(['system', 'light', 'dark'] as const).includes(theme as 'system')) return;
       nativeTheme.themeSource = theme as 'system' | 'light' | 'dark';
-      if (win && !win.isDestroyed() && typeof (win as unknown as Record<string, unknown>)['setTitleBarOverlay'] === 'function') {
+      if (state.win && !state.win.isDestroyed() && typeof (state.win as unknown as Record<string, unknown>)['setTitleBarOverlay'] === 'function') {
         const useDark = nativeTheme.shouldUseDarkColors;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (win as any).setTitleBarOverlay({
+        (state.win as any).setTitleBarOverlay({
           color: useDark ? '#1a1a1a' : '#f0f0f0',
           symbolColor: useDark ? '#e0e0e0' : '#333333',
         });
@@ -694,12 +706,12 @@ if (!gotTheLock) {
     });
 
     ipcMain.on('show_tray_icon', (_event, show: boolean) => {
-      if (show && tray === null) {
+      if (show && state.tray === null) {
         createTrayIcon();
-      } else if (!show && tray !== null) {
-        tray.destroy();
-        tray = null;
-      } else if (!show && tray === null) {
+      } else if (!show && state.tray !== null) {
+        state.tray.destroy();
+        state.tray = null;
+      } else if (!show && state.tray === null) {
         createTrayIcon();
       }
     });
@@ -733,18 +745,18 @@ if (!gotTheLock) {
     });
 
     ipcMain.on('resize-installer', (_event, size: number) => {
-      if (!installer) return;
-      const diff = installer.getSize()[1] - installer.getContentSize()[1];
+      if (!state.installer) return;
+      const diff = state.installer.getSize()[1] - state.installer.getContentSize()[1];
       log.silly(`Installer requested ${size}, offset is ${diff}, so size is ${size + diff}`);
-      installer.setSize(300, size + diff, true);
+      state.installer.setSize(300, size + diff, true);
     });
 
     ipcMain.on('installed', (_event, packFolder: string) => {
       log.silly(`Installed ${packFolder}`);
       store.set(current_pack_store_id, 'custom-' + packFolder);
-      win?.reload();
-      installer?.close();
-      installer = null;
+      state.win?.reload();
+      state.installer?.close();
+      state.installer = null;
     });
 
     log.debug(`Platform: ${process.platform}`);
@@ -782,7 +794,7 @@ if (!gotTheLock) {
           log.silly('Removing old custom directory...');
           fs.removeSync(old_custom_dir);
           log.debug('Migration complete.');
-          win?.reload();
+          state.win?.reload();
         } else if (response === 2) {
           storage_prompted.enable();
         }
@@ -800,17 +812,17 @@ app.on('window-all-closed', function () {
 
 app.on('activate', function () {
   log.silly('App has been activated');
-  if (win === null) {
+  if (state.win === null) {
     createWindow(true);
   } else {
     if (process.platform === 'darwin') {
       app.dock?.show();
     }
-    if (win.isMinimized()) {
-      win.restore();
+    if (state.win.isMinimized()) {
+      state.win.restore();
     }
-    win.show();
-    win.focus();
+    state.win.show();
+    state.win.focus();
   }
 });
 
@@ -825,15 +837,13 @@ app.on('quit', () => {
   app.quit();
 });
 
-let editor_window: BrowserWindow | null = null;
-
 function openEditorWindow() {
-  if (editor_window) {
-    editor_window.focus();
+  if (state.editorWindow) {
+    state.editorWindow.focus();
     return;
   }
 
-  editor_window = new BrowserWindow({
+  state.editorWindow = new BrowserWindow({
     width: 1200,
     height: 600,
     webPreferences: {
@@ -844,9 +854,9 @@ function openEditorWindow() {
     },
   });
 
-  editor_window.loadFile('./src/renderer/editor/index.html');
+  state.editorWindow.loadFile('./src/renderer/editor/index.html');
 
-  editor_window.on('closed', function () {
-    editor_window = null;
+  state.editorWindow.on('closed', function () {
+    state.editorWindow = null;
   });
 }
