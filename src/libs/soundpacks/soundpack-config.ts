@@ -25,6 +25,7 @@ export interface ISoundpackConfig {
   readonly is_custom: boolean;
   readonly is_archive: boolean;
   readonly version: number;
+  readonly config_version: number;
   audio?: unknown;
   LoadSounds(): Promise<Result<void, SoundpackError>>;
   HandleEvent(event: KeyEvent): void;

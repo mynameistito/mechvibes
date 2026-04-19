@@ -724,6 +724,12 @@ if (!gotTheLock) {
     }
 
 
+    ipcMain.handle('get-globals', () => ({
+      custom_dir,
+      current_pack_store_id,
+      app_version: app.getVersion(),
+    }));
+
     ipcMain.on("toggle-mute", () => {
       toggleMute();
     });
