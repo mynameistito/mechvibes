@@ -1,4 +1,3 @@
-import { ipcRenderer } from 'electron';
 import { useState, useEffect } from 'react';
 
 interface DebugOptions {
@@ -7,17 +6,20 @@ interface DebugOptions {
   level?: string | false;
 }
 
+interface DebugAPI {
+  onDebugOptions: (cb: (opts: DebugOptions) => void) => void;
+  onDebugUpdate: (cb: (opts: DebugOptions) => void) => void;
+  setDebugOptions: (opts: DebugOptions) => void;
+}
+
+const api = () => window.electronAPI as DebugAPI;
+
 export function DebugConsole() {
   const [debug, setDebug] = useState<DebugOptions | null>(null);
 
   useEffect(() => {
-    ipcRenderer.once('debug-options', (_event, json: DebugOptions) => {
-      setDebug(json);
-    });
-
-    ipcRenderer.on('debug-update', (_event, json: DebugOptions) => {
-      setDebug(json);
-    });
+    api().onDebugOptions(setDebug);
+    api().onDebugUpdate(setDebug);
   }, []);
 
   function toggleEnabled() {
@@ -25,7 +27,7 @@ export function DebugConsole() {
     const next = { ...debug, enabled: !debug.enabled };
     if (!next.enabled) next.identifier = undefined;
     setDebug(next);
-    ipcRenderer.send('set-debug-options', next);
+    api().setDebugOptions(next);
   }
 
   return (

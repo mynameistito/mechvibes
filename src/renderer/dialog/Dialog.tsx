@@ -1,4 +1,3 @@
-import { ipcRenderer } from 'electron';
 import { useState, useEffect } from 'react';
 
 interface DialogConfig {
@@ -6,13 +5,18 @@ interface DialogConfig {
   buttons: string[];
 }
 
+interface DialogAPI {
+  onDialogConfig: (cb: (cfg: DialogConfig) => void) => void;
+  sendDialogResult: (index: number) => void;
+}
+
+const api = () => window.electronAPI as DialogAPI;
+
 export function Dialog() {
   const [config, setConfig] = useState<DialogConfig | null>(null);
 
   useEffect(() => {
-    ipcRenderer.on('dialog-config', (_event, cfg: DialogConfig) => {
-      setConfig(cfg);
-    });
+    api().onDialogConfig(setConfig);
   }, []);
 
   if (!config) return null;
@@ -26,7 +30,7 @@ export function Dialog() {
         {config.buttons.map((label, index) => (
           <button
             key={index}
-            onClick={() => ipcRenderer.send('dialog-result', index)}
+            onClick={() => api().sendDialogResult(index)}
             className={
               index === 0
                 ? 'px-3.5 h-8 rounded text-[11px] font-extrabold tracking-wide uppercase cursor-pointer border border-transparent bg-[#ff5050] text-white hover:opacity-85 active:opacity-70 transition-opacity'

@@ -10,6 +10,17 @@ const rendererNodeExternals = [
 ]
 
 export default defineConfig({
+  preload: {
+    build: {
+      outDir: resolve('dist/preload'),
+      rollupOptions: {
+        input: {
+          dialog: resolve('src/main/preloads/dialog.ts'),
+          debug: resolve('src/main/preloads/debug.ts'),
+        },
+      },
+    },
+  },
   main: {
     build: {
       outDir: resolve('dist/main'),
