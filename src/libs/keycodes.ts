@@ -162,7 +162,7 @@ export const win32: KeycodeMap = { ...standard, ...{
 export const linux: KeycodeMap = { ...standard };
 
 export function keycodesRemap(defines: KeyDefines): SpriteDefines {
-  const sprite = remapper('standard', process.platform as Platform, { ...defines }) as Record<string, unknown>;
+  const sprite = remapper('standard', process.platform as Platform, { ...defines });
   const result: SpriteDefines = {};
   for (const kc of Object.keys(sprite)) {
     result[`keycode-${kc}`] = sprite[kc];
