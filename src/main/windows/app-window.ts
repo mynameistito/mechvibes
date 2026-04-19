@@ -13,7 +13,7 @@ export function createAppWindow(show: boolean, state: AppState, debug: DebugStat
     resizable: false,
     name: 'app',
     webPreferences: {
-      contextIsolation: true,
+      contextIsolation: false,
       nodeIntegration: true,
       webSecurity: true,
       backgroundThrottling: false,

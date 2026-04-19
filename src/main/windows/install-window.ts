@@ -10,7 +10,7 @@ export function openInstallWindow(packId: string, state: AppState): void {
     height: 200,
     useContentSize: false,
     webPreferences: {
-      contextIsolation: true,
+      contextIsolation: false,
       nodeIntegration: true,
       webSecurity: true,
     },

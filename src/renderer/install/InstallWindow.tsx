@@ -42,7 +42,7 @@ export function InstallWindow() {
             setPhase({ type: 'error', message: `Error (${errorCode[r.status] ?? 'UNKNOWN'})` });
             return;
           }
-          r.json().then((manifest: InstallManifest) => {
+          return r.json().then((manifest: InstallManifest) => {
             setPhase({ type: 'confirm', packName: manifest.name, manifest, packUrl });
             ipcRenderer.send('resize-installer', document.scrollingElement!.scrollHeight);
           });
@@ -102,7 +102,8 @@ export function InstallWindow() {
           <p className="text-center text-[1.5em] mb-4">{phase.packName}</p>
           <button
             onClick={() => install(phase.manifest, phase.packUrl)}
-            className="w-full flex items-center justify-center h-9 mb-2 rounded border border-[#e6e6e6] bg-white dark:bg-[#242424] dark:border-[#444] cursor-pointer hover:opacity-85 transition-opacity"
+            disabled={!customDir}
+            className="w-full flex items-center justify-center h-9 mb-2 rounded border border-[#e6e6e6] bg-white dark:bg-[#242424] dark:border-[#444] cursor-pointer hover:opacity-85 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Install
           </button>

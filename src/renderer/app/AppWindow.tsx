@@ -67,6 +67,7 @@ export function AppWindow() {
   const pressedKeyTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const packStoreIdRef = useRef('mechvibes-pack');
   const recordingRef = useRef(false);
+  const hotkeyListenerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
   const volumeElRef = useRef<HTMLInputElement>(null);
 
   // --- ui state ---
@@ -88,6 +89,14 @@ export function AppWindow() {
   const [showDebugButton, setShowDebugButton] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [recordingHotkey, setRecordingHotkey] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (hotkeyListenerRef.current) {
+        document.removeEventListener('keydown', hotkeyListenerRef.current, true);
+      }
+    };
+  }, []);
 
   // apply dark class to document root
   useEffect(() => {
@@ -378,11 +387,13 @@ export function AppWindow() {
       parts.push(keyName);
       const hk = parts.join('+');
       document.removeEventListener('keydown', onKeyDown, true);
+      hotkeyListenerRef.current = null;
       recordingRef.current = false;
       setRecordingHotkey(false);
       setHotkey(hk);
       ipcRenderer.send('set-hotkey', hk);
     }
+    hotkeyListenerRef.current = onKeyDown;
     document.addEventListener('keydown', onKeyDown, true);
   }
 

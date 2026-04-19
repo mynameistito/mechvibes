@@ -8,7 +8,7 @@ interface DebugOptions {
 
 interface DebugAPI {
   onDebugOptions: (cb: (opts: DebugOptions) => void) => void;
-  onDebugUpdate: (cb: (opts: DebugOptions) => void) => void;
+  onDebugUpdate: (cb: (opts: DebugOptions) => void) => () => void;
   setDebugOptions: (opts: DebugOptions) => void;
 }
 
@@ -19,7 +19,8 @@ export function DebugConsole() {
 
   useEffect(() => {
     api().onDebugOptions(setDebug);
-    api().onDebugUpdate(setDebug);
+    const cleanup = api().onDebugUpdate(setDebug);
+    return cleanup;
   }, []);
 
   function toggleEnabled() {
