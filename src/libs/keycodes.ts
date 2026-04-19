@@ -1,5 +1,11 @@
-'use strict';
-const standard = {
+import remapper from '../utils/remapper';
+
+export type KeycodeMap = Record<number, string | null>;
+export type Platform = 'darwin' | 'win32' | 'linux';
+export type KeyDefines = Record<string, unknown>;
+export type SpriteDefines = Record<string, unknown>;
+
+const standard: KeycodeMap = {
   1: 'Esc',
 
   59: 'F1',
@@ -128,8 +134,7 @@ const standard = {
   82: '0', // Numpad
 };
 
-const darwin = JSON.parse(JSON.stringify(standard));
-Object.assign(darwin, {
+export const darwin: KeycodeMap = { ...standard, ...{
   28: 'Return',
   56: 'Option',
   69: 'Clear',
@@ -137,10 +142,9 @@ Object.assign(darwin, {
   3666: 'Fn',
   3675: 'Command',
   3676: 'Command',
-});
+}};
 
-const win32 = JSON.parse(JSON.stringify(standard));
-Object.assign(win32, {
+export const win32: KeycodeMap = { ...standard, ...{
   3675: 'Win',
   3676: 'Win',
   61010: 'Ins',
@@ -153,30 +157,25 @@ Object.assign(win32, {
   61003: '←',
   61005: '→',
   61008: '↓',
-});
+}};
 
-const linux = JSON.parse(JSON.stringify(standard));
+export const linux: KeycodeMap = { ...standard };
 
-// ==================================================
-// remap keycodes from standard to os based keycodes
-function keycodesRemap(defines) {
-  const remapper = require('../utils/remapper');
-  const sprite = remapper('standard', process.platform, {...defines});
-  Object.keys(sprite).map((kc) => {
-    sprite[`keycode-${kc}`] = sprite[kc];
-    delete sprite[kc];
-  });
-  return sprite;
+export function keycodesRemap(defines: KeyDefines): SpriteDefines {
+  const sprite = remapper('standard', process.platform as Platform, { ...defines }) as Record<string, unknown>;
+  const result: SpriteDefines = {};
+  for (const kc of Object.keys(sprite)) {
+    result[`keycode-${kc}`] = sprite[kc];
+  }
+  return result;
 }
 
-function keycodesFill(defines){
-  let keys = {...defines};
-  Object.keys(standard).map((kc) => {
-    if(!keys[kc]){
+export function keycodesFill(defines: KeyDefines): KeyDefines {
+  const keys: KeyDefines = { ...defines };
+  for (const kc of Object.keys(standard)) {
+    if (!keys[kc]) {
       keys[kc] = null;
     }
-  });
+  }
   return keys;
 }
-
-module.exports = { darwin, win32, linux, keycodesRemap, keycodesFill };
