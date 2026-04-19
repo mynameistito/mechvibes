@@ -1,0 +1,43 @@
+electron.vite.config.ts
+  d58f3cb4e2e5dea3 13-23
+src/main/windows/dialog-window.ts
+  d58f3cb4e2e5dea3 40-43
+src/main/preloads/dialog.ts
+  d58f3cb4e2e5dea3 1-10
+src/main/windows/editor-window.ts
+  d58f3cb4e2e5dea3 17,19
+src/main/windows/install-window.ts
+  d58f3cb4e2e5dea3 13,15
+src/renderer/debug/DebugConsole.tsx
+  d58f3cb4e2e5dea3 9-16,21-22,30
+src/main/windows/debug-window.ts
+  d58f3cb4e2e5dea3 22-25
+src/renderer/electron-bridge.d.ts
+  d58f3cb4e2e5dea3 1-6
+src/renderer/dialog/Dialog.tsx
+  d58f3cb4e2e5dea3 8-14,19,33
+src/main/windows/app-window.ts
+  d58f3cb4e2e5dea3 16,18
+src/main/preloads/debug.ts
+  d58f3cb4e2e5dea3 1-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "3bd3b07e64f290bd6d214228d913ca4b222deb9c",
+  "prompts": {
+    "d58f3cb4e2e5dea3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "573abaa8-7928-49d8-8840-b64952bf9024",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 96,
+      "total_deletions": 48,
+      "accepted_lines": 74,
+      "overriden_lines": 0
+    }
+  }
+}
