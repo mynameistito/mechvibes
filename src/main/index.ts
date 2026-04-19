@@ -6,7 +6,7 @@ import Store from 'electron-store';
 import StoreToggle from '../main-only/store-toggle.js';
 import { parseHotkey } from './services/hotkey.js';
 import { startVolumePolling } from './services/volume.js';
-import { createTrayIcon, buildContextMenu, SYSTRAY_ICON, SYSTRAY_ICON_MUTED } from './services/tray.js';
+import { buildContextMenu, SYSTRAY_ICON, SYSTRAY_ICON_MUTED } from './services/tray.js';
 import type { TrayCallbacks } from './services/tray.js';
 import { initializeDebugAndLogging } from './services/debug-logging.js';
 import { startKeyboardHooks } from './services/keyboard.js';
@@ -62,15 +62,6 @@ const { debug, debugConfigFile } = initializeDebugAndLogging(state, user_dir);
 fs.ensureDirSync(custom_dir);
 
 const gotTheLock = app.requestSingleInstanceLock();
-app.on('second-instance', () => {
-  if (state.win) {
-    if (process.platform === 'darwin') {
-      app.dock?.show();
-    }
-    state.win.show();
-    state.win.focus();
-  }
-});
 
 const protocolCommands: Record<string, (...args: string[]) => void> = {
   install(packId: string) {
@@ -204,7 +195,7 @@ if (!gotTheLock) {
     }
 
     checkAndMigrateStorage({
-      shouldCheck: storage_prompted.is_enabled,
+      shouldCheck: !storage_prompted.is_enabled,
       markAsked: () => storage_prompted.enable(),
       homeDir: app.getPath('home'),
       customDir: custom_dir,
@@ -238,7 +229,6 @@ app.on('activate', function () {
 
 function OnBeforeQuit() {
   log.silly('Shutting down...');
-  app.removeAsDefaultProtocolClient('mechvibes');
 }
 app.on('before-quit', OnBeforeQuit);
 

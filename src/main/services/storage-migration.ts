@@ -28,16 +28,26 @@ export function checkAndMigrateStorage(options: {
   if (response === 0) {
     log.debug('User requested migration, migrating...');
     const oldCustomFiles = fs.readdirSync(old_custom_dir);
+    const failedFiles: string[] = [];
     oldCustomFiles.forEach((file) => {
       const sourcePath = path.join(old_custom_dir, file);
       const destinationPath = path.join(options.customDir, file);
       log.silly(`Moving ${sourcePath.replace(options.homeDir, '~')} to ${destinationPath.replace(options.homeDir, '~')}`);
-      fs.moveSync(sourcePath, destinationPath, { overwrite: true });
+      try {
+        fs.moveSync(sourcePath, destinationPath, { overwrite: true });
+      } catch (e) {
+        log.error(`Failed to move ${file}: ${String(e)}`);
+        failedFiles.push(file);
+      }
     });
-    log.silly('Removing old custom directory...');
-    fs.removeSync(old_custom_dir);
-    log.debug('Migration complete.');
-    options.win?.reload();
+    if (failedFiles.length > 0) {
+      dialog.showErrorBox('Migration failed', `The following files could not be moved:\n${failedFiles.join('\n')}`);
+    } else {
+      log.silly('Removing old custom directory...');
+      fs.removeSync(old_custom_dir);
+      log.debug('Migration complete.');
+      options.win?.reload();
+    }
   } else if (response === 2) {
     options.markAsked();
   }

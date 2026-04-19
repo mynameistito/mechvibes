@@ -121,14 +121,21 @@ export class SoundpackConfigV2 implements ISoundpackConfig {
         }
         this.audio = {} as MultiAudio;
         const remapped = keycodesRemap(sound_data) as Record<string, { src: string[] }>;
-        for (const kc of Object.keys(remapped)) {
-          const audio = new Howl(remapped[kc]);
-          waitForLoad(audio).then(() => {
-            clearTimeout(timeout);
-            (this.audio as MultiAudio)[kc] = audio;
-            resolve(Result.ok(undefined));
-          }).catch((e: unknown) => { clearTimeout(timeout); fail(String(e)); });
+        const keys = Object.keys(remapped);
+        if (keys.length === 0) {
+          clearTimeout(timeout);
+          fail('No sounds could be loaded');
+          return;
         }
+        const promises = keys.map((kc) => {
+          const audio = new Howl(remapped[kc]);
+          (this.audio as MultiAudio)[kc] = audio;
+          return waitForLoad(audio);
+        });
+        Promise.all(promises).then(() => {
+          clearTimeout(timeout);
+          resolve(Result.ok(undefined));
+        }).catch((e: unknown) => { clearTimeout(timeout); fail(String(e)); });
       } else {
         clearTimeout(timeout);
         fail('Invalid key_define_type');

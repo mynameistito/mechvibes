@@ -23,8 +23,9 @@ export function GetFilesFromArchive(folder: string): Result<ArchiveFiles, FileEr
       const files: ArchiveFiles = {};
       for (const file of zip.getEntries()) {
         if (file.isDirectory) continue;
-        const fileName = path.basename(file.entryName).toLowerCase();
-        if (fileName === 'config.json') {
+        const fileName = file.entryName.replace(/\\/g, '/').toLowerCase();
+        const baseName = path.basename(fileName);
+        if (baseName === 'config.json') {
           files[fileName] = file.getData().toString('utf8');
         } else {
           const mimeType = mime.lookup(fileName) || 'application/octet-stream';
@@ -41,11 +42,12 @@ export function GetFileFromArchive(folder: string, search: string): Result<strin
   return Result.try({
     try: () => {
       const zip = new Zip(folder);
+      const normalizedSearch = search.toLowerCase();
       for (const file of zip.getEntries()) {
         if (file.isDirectory) continue;
-        const fileName = path.basename(file.entryName).toLowerCase();
-        if (fileName === search) {
-          if (fileName === 'config.json') {
+        const fileName = file.entryName.replace(/\\/g, '/').toLowerCase();
+        if (fileName === normalizedSearch) {
+          if (path.basename(fileName) === 'config.json') {
             return file.getData().toString('utf8');
           }
           const mimeType = mime.lookup(fileName) || 'application/octet-stream';
@@ -62,6 +64,11 @@ export function GetFileFromFolder(folder: string, file: string): Result<string, 
   return Result.try({
     try: () => {
       const filePath = path.join(folder, file);
+      const resolvedFolder = path.resolve(folder);
+      const resolvedFile = path.resolve(filePath);
+      if (!resolvedFile.startsWith(resolvedFolder + path.sep) && resolvedFile !== resolvedFolder) {
+        throw new Error(`Path traversal detected: ${file}`);
+      }
       if (!fs.existsSync(filePath)) {
         throw new Error(`File not found: ${filePath}`);
       }

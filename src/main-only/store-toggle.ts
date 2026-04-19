@@ -16,7 +16,8 @@ export class StoreToggle {
 
   get is_enabled(): boolean {
     if (!store.has(this.key)) return this.default;
-    return store.get(this.key) as boolean;
+    const value = store.get(this.key);
+    return typeof value === 'boolean' ? value : this.default;
   }
 
   enable(): Result<void, StoreError> {

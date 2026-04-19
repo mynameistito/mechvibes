@@ -86,8 +86,6 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     } else if (!show && state.tray !== null) {
       state.tray.destroy();
       state.tray = null;
-    } else if (!show && state.tray === null) {
-      createTrayIcon(state, startupHandler, userDir, customDir, trayCallbacks);
     }
   });
 

@@ -11,12 +11,12 @@ export function createAppWindow(show: boolean, state: AppState, debug: DebugStat
     width: 400,
     height: 720,
     resizable: false,
-    backgroundThrottling: false,
     webPreferences: {
       preload: path.join(__dirname, '../../renderer/app/index.js'),
       contextIsolation: false,
       nodeIntegration: true,
       webSecurity: false,
+      backgroundThrottling: false,
     },
     show: false,
   } as Electron.BrowserWindowConstructorOptions & { name?: string });
@@ -46,7 +46,6 @@ export function createAppWindow(show: boolean, state: AppState, debug: DebugStat
       event.preventDefault();
       state.win!.hide();
     }
-    return false;
   });
 
   state.win.on('unresponsive', () => {
@@ -55,8 +54,6 @@ export function createAppWindow(show: boolean, state: AppState, debug: DebugStat
 
   if (show) {
     state.win.show();
-  } else {
-    state.win.close();
   }
 
   return state.win;

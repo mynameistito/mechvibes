@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { ipcRenderer } from 'electron';
 
 const BASE_URL = 'https://www.mechvibes.com/sound-packs';
@@ -65,7 +66,11 @@ ipcRenderer.on('install-pack', (_event, packId: string) => {
     const progBar = document.getElementById('prog-bar')!;
     askPrompt.style.display = 'none';
 
-    const INSTALL_DIR = `${CUSTOM_PACKS_DIR}/${installation.folder}`;
+    const INSTALL_DIR = path.resolve(CUSTOM_PACKS_DIR, installation.folder);
+    if (!INSTALL_DIR.startsWith(path.resolve(CUSTOM_PACKS_DIR) + path.sep)) {
+      logo.innerText = 'Error (TRAVERSAL)';
+      return;
+    }
     if (!fs.existsSync(INSTALL_DIR)) {
       fs.mkdirSync(INSTALL_DIR);
     }
@@ -86,7 +91,12 @@ ipcRenderer.on('install-pack', (_event, packId: string) => {
         const blob = await request.blob();
         const arrayBuffer = await blob.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        fs.writeFileSync(`${INSTALL_DIR}/${file}`, buffer);
+        const destPath = path.resolve(INSTALL_DIR, file);
+        if (!destPath.startsWith(path.resolve(INSTALL_DIR) + path.sep)) {
+          error = { status: 0, file };
+          break;
+        }
+        fs.writeFileSync(destPath, buffer);
         progBar.style.width = `${((i + 1) / installation.files.length) * 100}%`;
       }
 

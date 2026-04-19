@@ -59,26 +59,23 @@ export function initializeDebugAndLogging(
           }
         } else {
           this.enabled = false;
-          console.log(identifyResult);
         }
       } else {
-        console.log('enabling early');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (log.transports as any).remote.client.identifier = this.identifier;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (log.transports as any).remote.level = 'silly';
         const validateResult = await IpcServer.validate(this.identifier, userInfo);
         if (!Result.isOk(validateResult) || !validateResult.value.success) {
-          console.log('Failed validation');
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (log.transports as any).remote.level = false;
           this.enabled = false;
           this.identifier = undefined;
-          fs.unlinkSync(debugConfigFile);
+          fs.removeSync(debugConfigFile);
         }
       }
       if (state.win !== null) {
-        state.win.webContents.send('debug-in-use', true);
+        state.win.webContents.send('debug-in-use', this.enabled);
       }
     },
     disable() {
@@ -88,7 +85,7 @@ export function initializeDebugAndLogging(
       (log.transports as any).remote.level = false;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (log.transports as any).remote.client.identifier = undefined;
-      fs.unlinkSync(debugConfigFile);
+      fs.removeSync(debugConfigFile);
       if (state.win !== null) {
         state.win.webContents.send('debug-in-use', false);
       }
@@ -106,16 +103,18 @@ export function initializeDebugAndLogging(
   }
 
   if (fs.existsSync(debugConfigFile)) {
-    const json = JSON.parse(fs.readFileSync(debugConfigFile, 'utf8')) as { identifier?: string; enabled?: boolean };
-    console.log(json);
-    if (json.identifier) {
-      debug.identifier = json.identifier;
-      if (json.enabled) {
-        debug.enable();
-        console.log('enabled?');
+    try {
+      const json = JSON.parse(fs.readFileSync(debugConfigFile, 'utf8')) as { identifier?: string; enabled?: boolean };
+      if (json.identifier) {
+        debug.identifier = json.identifier;
+        if (json.enabled) {
+          debug.enable().catch(() => {});
+        }
+      } else {
+        fs.removeSync(debugConfigFile);
       }
-    } else {
-      fs.unlinkSync(debugConfigFile);
+    } catch {
+      fs.removeSync(debugConfigFile);
     }
   }
 

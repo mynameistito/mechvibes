@@ -23,7 +23,9 @@ export function startVolumePolling(
         const v = await getVolume();
         if (v !== volumeLevel) {
           volumeLevel = v;
-          state.win?.webContents.send('system-volume-update', volumeLevel);
+          if (state.win && !state.win.isDestroyed()) {
+            state.win.webContents.send('system-volume-update', volumeLevel);
+          }
         }
       },
       catch: (e) => new VolumeError({ message: String(e), source: 'get' }),
@@ -36,7 +38,9 @@ export function startVolumePolling(
         const m = await getMute();
         if (m !== system_mute) {
           system_mute = m;
-          state.win?.webContents.send('system-mute-status', system_mute);
+          if (state.win && !state.win.isDestroyed()) {
+            state.win.webContents.send('system-mute-status', system_mute);
+          }
         }
       },
       catch: (e) => new VolumeError({ message: String(e), source: 'mute' }),
@@ -53,6 +57,7 @@ export function startVolumePolling(
           system_volume_error = true;
         }
         log.error(`Volume Error: ${err}`);
+        return;
       }
 
       const muteResult = await pollMute();

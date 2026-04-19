@@ -9,6 +9,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export { type DebugState } from './debug-state.js';
 
 export function createDebugWindow(state: AppState, debug: DebugState, debugConfigFile: string): void {
+  if (state.debugWindow) {
+    state.debugWindow.focus();
+    return;
+  }
+
   state.debugWindow = new BrowserWindow({
     width: 350,
     height: 500,
@@ -36,16 +41,18 @@ export function createDebugWindow(state: AppState, debug: DebugState, debugConfi
     state.debugWindow!.webContents.send('debug-options', options);
   });
 
-  ipcMain.on('fetch-debug-options', () => {
+  const handleFetchDebugOptions = () => {
     const options = { ...debug, path: debugConfigFile };
     state.debugWindow?.webContents.send('debug-options', options);
-  });
+  };
+  ipcMain.on('fetch-debug-options', handleFetchDebugOptions);
 
   state.debugWindow.on('ready-to-show', () => {
     state.debugWindow!.show();
   });
 
   state.debugWindow.on('closed', function () {
+    ipcMain.removeListener('fetch-debug-options', handleFetchDebugOptions);
     state.debugWindow = null;
   });
 }

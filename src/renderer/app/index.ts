@@ -314,7 +314,7 @@ function packsToOptions(packList: HTMLSelectElement) {
       .then((res) => res.json())
       .then((json: { tag_name: string }) => {
         if (json.tag_name.localeCompare(APP_VERSION, undefined, { numeric: true }) === 1) {
-          new_version.innerHTML = json.tag_name;
+          new_version.textContent = json.tag_name;
           update_available.classList.remove('hidden');
         }
       });
@@ -591,16 +591,20 @@ function packsToOptions(packList: HTMLSelectElement) {
 
     random_button.addEventListener('click', (e) => {
       e.preventDefault();
-      function getRandomPackId(): number {
-        const randomId = Math.floor(Math.random() * packs.length);
-        if (current_pack && packs[randomId].pack_id === current_pack.pack_id) {
-          return getRandomPackId();
+      if (packs.length === 0) return;
+      if (packs.length === 1) {
+        pack_list.selectedIndex = 0;
+        if (!current_pack || packs[0].pack_id !== current_pack.pack_id) {
+          setPackByIndex(0);
         }
-        return randomId;
+        return;
       }
-      const packId = getRandomPackId();
-      pack_list.selectedIndex = packId;
-      setPackByIndex(packId);
+      const candidates = packs
+        .map((p, i) => ({ p, i }))
+        .filter(({ p }) => !current_pack || p.pack_id !== current_pack.pack_id);
+      const { i } = candidates[Math.floor(Math.random() * candidates.length)];
+      pack_list.selectedIndex = i;
+      setPackByIndex(i);
     });
 
     debug_button.addEventListener('click', (e) => {
@@ -619,7 +623,8 @@ function playSound(event: { type: 'keydown' | 'keyup'; keycode: number }, volume
   if (current_pack === null || current_pack.audio === undefined) return;
 
   if (active_volume) {
-    const adjustedVolume = volumeValue * (100 / system_volume);
+    const effectiveSystemVolume = system_volume > 0 ? system_volume : 1;
+    const adjustedVolume = volumeValue * (100 / effectiveSystemVolume);
     if (!is_system_muted) {
       log.silly(`Volume: ${volumeValue}`);
       log.silly(`System Volume: ${system_volume}`);
@@ -633,7 +638,7 @@ function playSound(event: { type: 'keydown' | 'keyup'; keycode: number }, volume
 
   if (current_pack.HandleEvent !== undefined) {
     current_pack.HandleEvent(event);
-    log.info(`Playing sound for keycode: ${event.keycode} (${event.type})`);
+    log.silly(`Playing sound for keycode: ${event.keycode} (${event.type})`);
   } else {
     log.warn("Pack version doesn't have a HandleEvent function");
   }
