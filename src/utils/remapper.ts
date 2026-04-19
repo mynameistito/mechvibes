@@ -2,7 +2,7 @@ import type { Platform, KeyDefines } from '../libs/keycodes';
 
 function remapper(
   from: 'standard' | Platform,
-  to: Platform,
+  to: 'standard' | Platform,
   defines: KeyDefines,
 ): KeyDefines {
   if (from === 'standard') {
