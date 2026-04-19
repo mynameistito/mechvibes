@@ -98,7 +98,7 @@ export function initializeDebugAndLogging(
   void IpcServer.setRemoteUrl(debug.remoteUrl);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (log.transports as any).remote = remoteTransportFactory(log, debug.remoteUrl);
+  (log.transports as any).remote = remoteTransportFactory(log as any, debug.remoteUrl);
 
   for (const transportName in log.transports) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

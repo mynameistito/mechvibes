@@ -24,9 +24,19 @@
   "license": "MIT",
   "build": {
     "extraResources": [
-      { "from": "audio", "to": "audio" },
-      { "from": "src/renderer", "to": "src/renderer", "filter": ["**/*.html", "**/*.css"] },
-      { "from": "src/assets", "to": "src/assets" }
+      {
+        "from": "audio",
+        "to": "audio"
+      },
+      {
+        "from": "src/renderer",
+        "to": "src/renderer",
+        "filter": ["**/*.html", "**/*.css"]
+      },
+      {
+        "from": "src/assets",
+        "to": "src/assets"
+      }
     ],
     "nsis": {
       "oneClick": false,
@@ -85,12 +95,12 @@
     "adm-zip": "^0.5.17",
     "better-result": "^2.8.2",
     "easy-volume": "^1.2.0",
-    "electron-log": "^4.4.8",
-    "electron-store": "^7.0.0",
+    "electron-log": "^5.4.3",
+    "electron-store": "^11.0.2",
     "fs-extra": "^11.3.4",
-    "glob": "^8.1.0",
+    "glob": "^13.0.6",
     "howler": "^2.2.4",
-    "mime-types": "^2.1.35",
+    "mime-types": "^3.0.2",
     "uiohook-napi": "^1.5.5"
   },
   "devDependencies": {
@@ -100,7 +110,7 @@
     "@types/jquery": "^4.0.0",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^25.6.0",
-    "@typescript/native-preview": "^7.0.0-dev.20260418.1",
+    "@typescript/native-preview": "^7.0.0-dev.20260419.1",
     "electron": "^41.2.1",
     "electron-builder": "^26.8.1",
     "typescript": "^6.0.3"

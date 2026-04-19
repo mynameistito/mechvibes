@@ -2,12 +2,7 @@ import { app } from 'electron';
 import http from 'http';
 import https from 'https';
 import { URL } from 'url';
-import { createRequire } from 'module';
 import { TaggedError } from 'better-result';
-
-const _require = createRequire(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const transform = _require('electron-log/src/transform') as any;
 
 export class NetworkError extends TaggedError('network')<{ message: string; url?: string }>() {}
 
@@ -16,7 +11,7 @@ interface LogMessage { date: Date; level: string; data: unknown[]; variables: Re
 interface ElectronLog {
   transports: Record<string, unknown>;
   variables: Record<string, string>;
-  logMessageWithTransports(msg: { data: unknown[]; level: string }, transports: unknown[]): void;
+  processMessage(msg: { data: unknown[]; level: string; [key: string]: unknown }, opts?: { transports?: Record<string, unknown> }): void;
 }
 
 export interface RemoteTransport {
@@ -31,16 +26,30 @@ export interface RemoteTransport {
   clear: () => never;
 }
 
+function serializeData(data: unknown[], maxDepth: number): unknown[] {
+  function limitDepth(value: unknown, depth: number): unknown {
+    if (depth <= 0) return '[Object]';
+    if (value === null || typeof value !== 'object') return value;
+    if (Array.isArray(value)) return value.map(v => limitDepth(v, depth - 1));
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(value as object)) {
+      result[key] = limitDepth((value as Record<string, unknown>)[key], depth - 1);
+    }
+    return result;
+  }
+  try {
+    return JSON.parse(JSON.stringify(data.map(v => limitDepth(v, maxDepth))));
+  } catch {
+    return data.map(v => String(v));
+  }
+}
+
 export function remoteTransportFactory(electronLog: ElectronLog, defaultUrl: string): RemoteTransport {
   function transportFn(message: LogMessage): void {
     const t = transportFn as RemoteTransport;
     if (!t.url) return;
 
-    const data = transform.transform(message, [
-      transform.removeStyles,
-      transform.toJSON,
-      transform.maxDepthFactory(t.depth + 1),
-    ]);
+    const data = serializeData(message.data, t.depth + 1);
 
     const body = t.transformBody({
       client: t.client,
@@ -51,9 +60,9 @@ export function remoteTransportFactory(electronLog: ElectronLog, defaultUrl: str
     });
 
     electronLog.variables.sender = 'log.remote › sending › ' + message.variables.sender;
-    electronLog.logMessageWithTransports(
+    electronLog.processMessage(
       { data, level: 'info' },
-      [(electronLog.transports as Record<string, unknown>)['file']],
+      { transports: { file: (electronLog.transports as Record<string, unknown>)['file'] } },
     );
     electronLog.variables.sender = 'main';
 
@@ -66,13 +75,15 @@ export function remoteTransportFactory(electronLog: ElectronLog, defaultUrl: str
       response.on('end', () => {
         if (response.statusCode !== 200) {
           electronLog.variables.sender = 'log.remote';
-          electronLog.logMessageWithTransports(
+          electronLog.processMessage(
             { data: [`received HTTP response code ${response.statusCode} from ${t.url}`], level: 'warn' },
-            [
-              (electronLog.transports as Record<string, unknown>)['console'],
-              (electronLog.transports as Record<string, unknown>)['ipc'],
-              (electronLog.transports as Record<string, unknown>)['file'],
-            ],
+            {
+              transports: {
+                console: (electronLog.transports as Record<string, unknown>)['console'],
+                ipc: (electronLog.transports as Record<string, unknown>)['ipc'],
+                file: (electronLog.transports as Record<string, unknown>)['file'],
+              },
+            },
           );
           electronLog.variables.sender = 'main';
         }
@@ -81,13 +92,15 @@ export function remoteTransportFactory(electronLog: ElectronLog, defaultUrl: str
 
     request.on('error', t.onError || ((error: Error) => {
       electronLog.variables.sender = 'log.remote';
-      electronLog.logMessageWithTransports(
+      electronLog.processMessage(
         { data: [`cannot send HTTP request to ${t.url}`, error], level: 'warn' },
-        [
-          (electronLog.transports as Record<string, unknown>)['console'],
-          (electronLog.transports as Record<string, unknown>)['ipc'],
-          (electronLog.transports as Record<string, unknown>)['file'],
-        ],
+        {
+          transports: {
+            console: (electronLog.transports as Record<string, unknown>)['console'],
+            ipc: (electronLog.transports as Record<string, unknown>)['ipc'],
+            file: (electronLog.transports as Record<string, unknown>)['file'],
+          },
+        },
       );
       electronLog.variables.sender = 'main';
     }));
