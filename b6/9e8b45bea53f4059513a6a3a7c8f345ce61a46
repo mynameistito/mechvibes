@@ -1,0 +1,33 @@
+src/main/windows/app-window.ts
+  d7cbac101bd1e97a 16
+src/renderer/app/AppWindow.tsx
+  d7cbac101bd1e97a 70,93-100,390,396
+src/renderer/install/InstallWindow.tsx
+  d7cbac101bd1e97a 45,105-106
+src/main/preloads/debug.ts
+  d7cbac101bd1e97a 8-10
+src/renderer/debug/DebugConsole.tsx
+  d7cbac101bd1e97a 11,22-23
+src/main/windows/install-window.ts
+  d7cbac101bd1e97a 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "b69e8b45bea53f4059513a6a3a7c8f345ce61a46",
+  "prompts": {
+    "d7cbac101bd1e97a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4dd06db0-cf98-41c8-9ad5-8f5ae0cfdb43",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 22,
+      "total_deletions": 7,
+      "accepted_lines": 22,
+      "overriden_lines": 0
+    }
+  }
+}
