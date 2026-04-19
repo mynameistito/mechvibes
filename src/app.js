@@ -19,7 +19,7 @@ const MV_TRAY_LSID = 'mechvibes-hidden';
 const MV_THEME_LSID = 'mechvibes-theme';
 
 const CUSTOM_PACKS_DIR = remote.getGlobal('custom_dir');
-const OFFICIAL_PACKS_DIR = path.join(__dirname, 'audio');
+const OFFICIAL_PACKS_DIR = path.join(__dirname, '../src/audio');
 const APP_VERSION = remote.getGlobal('app_version');
 
 let active_volume = true;

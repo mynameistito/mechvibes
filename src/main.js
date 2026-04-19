@@ -19,8 +19,8 @@ nativeTheme.themeSource = validateTheme(store.get('mechvibes-theme', 'system'));
 const StartupHandler = require('./utils/startup_handler');
 const StoreToggle = require('./utils/store_toggle');
 
-const SYSTRAY_ICON = path.join(__dirname, '/assets/system-tray-icon.png');
-const SYSTRAY_ICON_MUTED = path.join(__dirname, '/assets/system-tray-icon-muted.png');
+const SYSTRAY_ICON = path.join(__dirname, '../src/assets/system-tray-icon.png');
+const SYSTRAY_ICON_MUTED = path.join(__dirname, '../src/assets/system-tray-icon-muted.png');
 const user_dir = app.getPath("userData");
 const custom_dir = path.join(user_dir, '/custom');
 const current_pack_store_id = 'mechvibes-pack';

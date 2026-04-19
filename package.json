@@ -4,13 +4,14 @@
   "version": "v2.3.9",
   "description": "Play mechanical keyboard sounds as you type.",
   "repository": "https://github.com/hainguyents13/mechvibes",
-  "main": "src/main.js",
+  "main": "dist/main.js",
   "scripts": {
-    "dev": "electron .",
-    "build:all": "electron-builder -wml",
-    "build:win": "electron-builder -w",
-    "build:mac": "electron-builder -m",
-    "build:linux": "electron-builder -l",
+    "build": "tsc",
+    "dev": "npm run build && electron .",
+    "build:all": "npm run build && electron-builder -wml",
+    "build:win": "npm run build && electron-builder -w",
+    "build:mac": "npm run build && electron-builder -m",
+    "build:linux": "npm run build && electron-builder -l",
     "build:clean": "node tools/clean-dist.js"
   },
   "keywords": [],
@@ -89,6 +90,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.17",
+    "better-result": "^2.8.2",
     "easy-volume": "^1.2.0",
     "electron-fetch": "^1.9.1",
     "electron-log": "^4.4.8",
@@ -100,8 +102,16 @@
     "mime-types": "^2.1.35"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/fs-extra": "^11.0.4",
+    "@types/howler": "^2.2.12",
+    "@types/jquery": "^4.0.0",
+    "@types/mime-types": "^3.0.1",
+    "@types/node": "^25.6.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260418.1",
     "electron": "^12.2.3",
-    "electron-builder": "^26.8.1"
+    "electron-builder": "^26.8.1",
+    "typescript": "^6.0.3"
   },
   "trustedDependencies": [
     "iohook"
