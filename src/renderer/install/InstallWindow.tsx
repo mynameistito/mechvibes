@@ -30,6 +30,10 @@ export function InstallWindow() {
   const [customDir, setCustomDir] = useState('');
 
   useEffect(() => {
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
+
     ipcRenderer.invoke('get-globals').then((g: { custom_dir: string }) => {
       setCustomDir(g.custom_dir);
     }).catch(console.error);

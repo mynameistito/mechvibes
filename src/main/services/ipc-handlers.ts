@@ -2,18 +2,15 @@ import { ipcMain, nativeTheme, app } from 'electron';
 import log from 'electron-log';
 import Store from 'electron-store';
 import type { AppState } from '../app-state.js';
-import type { DebugState } from '../windows/debug-state.js';
 import StartupHandler from '../../main-only/startup-handler.js';
 import { createTrayIcon, buildContextMenu } from './tray.js';
 import type { TrayCallbacks } from './tray.js';
-import { createDebugWindow } from '../windows/debug-window.js';
 import { parseHotkey } from './hotkey.js';
 
 export interface IpcDependencies {
   state: AppState;
   store: Store;
   startupHandler: StartupHandler;
-  debug: DebugState;
   customDir: string;
   currentPackStoreId: string;
   muteHotkeyStoreId: string;
@@ -25,7 +22,7 @@ export interface IpcDependencies {
 
 export function registerIpcHandlers(deps: IpcDependencies): void {
   const {
-    state, store, startupHandler, debug,
+    state, store, startupHandler,
     customDir, currentPackStoreId, muteHotkeyStoreId,
     defaultMuteHotkey, userDir, toggleMute, trayCallbacks,
   } = deps;
@@ -116,18 +113,6 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     (log as any)[safeLevel](message);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (log as any).variables.sender = 'main';
-  });
-
-  ipcMain.on('open-debug-options', () => {
-    createDebugWindow(state, debug);
-  });
-
-  ipcMain.on('set-debug-options', (_event, json: { enabled: boolean }) => {
-    if (json.enabled && !debug.enabled) {
-      void debug.enable().catch((e: unknown) => log.error(`Failed to enable debug: ${e}`));
-    } else if (!json.enabled && debug.enabled) {
-      debug.disable();
-    }
   });
 
   ipcMain.on('resize-installer', (_event, size: number) => {

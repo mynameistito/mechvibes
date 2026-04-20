@@ -79,14 +79,15 @@ export function AppWindow() {
   const [activeVolume, setActiveVolume] = useState(true);
   const [isSystemMuted, setIsSystemMuted] = useState(false);
   const [isMechvibesMuted, setIsMechvibesMuted] = useState(false);
-  const [isDebugInUse, setIsDebugInUse] = useState(false);
   const [hotkey, setHotkey] = useState<string | null>(null);
   const [showTrayIcon, setShowTrayIcon] = useState(true);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    const t = new URLSearchParams(location.search).get('theme') ?? localStorage.getItem('mechvibes-theme');
+    return t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
   const [startupEnabled, setStartupEnabled] = useState(false);
   const [appVersion, setAppVersion] = useState('');
   const [newVersion, setNewVersion] = useState<string | null>(null);
-  const [showDebugButton, setShowDebugButton] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [recordingHotkey, setRecordingHotkey] = useState(false);
 
@@ -224,6 +225,7 @@ export function AppWindow() {
       const savedTheme = store.get('mechvibes-theme', 'system') as string;
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const dark = savedTheme === 'dark' || (savedTheme === 'system' && prefersDark);
+      localStorage.setItem('mechvibes-theme', savedTheme);
       setIsDark(dark);
 
       // tray
@@ -240,14 +242,6 @@ export function AppWindow() {
       // startup
       ipcRenderer.send('get-startup-status');
       ipcRenderer.send('get-mute-status');
-
-      // debug button visibility
-      fetch('https://beta.mechvibes.com/debug/status/', {
-        method: 'GET',
-        headers: { 'User-Agent': `Mechvibes/${globals.app_version} (Electron/${process.versions.electron})` },
-      }).then(async (res) => {
-        if (res.status === 200 && await res.text() === 'enabled') setShowDebugButton(true);
-      }).catch(() => {});
 
       // update check
       fetch('https://api.github.com/repos/hainguyents13/mechvibes/releases/latest')
@@ -272,7 +266,6 @@ export function AppWindow() {
     });
     ipcRenderer.on('system-mute-status', (_e, enabled: boolean) => setIsSystemMuted(enabled));
     ipcRenderer.on('mechvibes-mute-status', (_e, enabled: boolean) => setIsMechvibesMuted(enabled));
-    ipcRenderer.on('debug-in-use', (_e, enabled: boolean) => setIsDebugInUse(enabled));
     ipcRenderer.on('mute-hotkey', (_e, hk: string) => setHotkey(hk));
     ipcRenderer.on('startup-status', (_e, enabled: boolean) => setStartupEnabled(enabled));
     ipcRenderer.on('clear-pressed-keys', () => {
@@ -329,8 +322,10 @@ export function AppWindow() {
   function handleThemeToggle() {
     const next = !isDark;
     setIsDark(next);
-    store.set('mechvibes-theme', next ? 'dark' : 'light');
-    ipcRenderer.send('set-theme', next ? 'dark' : 'light');
+    const theme = next ? 'dark' : 'light';
+    store.set('mechvibes-theme', theme);
+    localStorage.setItem('mechvibes-theme', theme);
+    ipcRenderer.send('set-theme', theme);
   }
 
   function handleStartupToggle() {
@@ -545,12 +540,6 @@ export function AppWindow() {
           <button onClick={() => shell.openExternal('https://mechvibes.com')} className="text-[#ff5050] hover:underline bg-transparent border-none p-0 cursor-pointer">Home page</button>
           <span>|</span>
           <button onClick={() => shell.openExternal('https://buymeacoff.ee/hainguyents13')} className="text-[#ff5050] hover:underline bg-transparent border-none p-0 cursor-pointer">Buy me a coffee</button>
-          {showDebugButton && (
-            <>
-              <span>|</span>
-              <button onClick={() => ipcRenderer.send('open-debug-options')} className="text-[#ff5050] hover:underline bg-transparent border-none p-0 cursor-pointer">Advanced</button>
-            </>
-          )}
         </div>
         <p className="text-[#999] mb-1">{appVersion}</p>
         {newVersion && (
@@ -559,12 +548,6 @@ export function AppWindow() {
             <div className="mt-1">
               <button onClick={() => shell.openExternal('https://mechvibes.com/download/')} className="text-[#ff5050] hover:underline bg-transparent border-none p-0 cursor-pointer">Check it out</button>
             </div>
-          </div>
-        )}
-        {isDebugInUse && (
-          <div className="px-1.5 py-2 border border-[#ffb8b8] bg-[#fff2f2] dark:bg-[#2a1a1a] dark:border-[#7a3030] rounded">
-            <button onClick={() => ipcRenderer.send('set-debug-options', { enabled: false })} className="text-[#ff5050] hover:underline bg-transparent border-none p-0 cursor-pointer">Click here</button>
-            {' '}to disable remote debugging.
           </div>
         )}
       </div>

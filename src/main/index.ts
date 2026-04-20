@@ -1,4 +1,4 @@
-import { app, nativeTheme, powerMonitor } from 'electron';
+import { app, nativeTheme, powerMonitor, session } from 'electron';
 import * as path from 'path';
 import fs from 'fs-extra';
 import log from 'electron-log';
@@ -17,8 +17,6 @@ import type { AppState } from './app-state.js';
 import { createAppWindow } from './windows/app-window.js';
 import { openEditorWindow } from './windows/editor-window.js';
 import { openInstallWindow } from './windows/install-window.js';
-
-// NOTE: Do not update electron-log, as we have a custom transport override which may not be compatible with newer versions.
 
 const store = new Store();
 
@@ -43,7 +41,6 @@ const state: AppState = {
   win: null,
   tray: null,
   installer: null,
-  debugWindow: null,
   editorWindow: null,
   isQuiting: false,
   muteState: mute.is_enabled,
@@ -57,7 +54,7 @@ const state: AppState = {
   parsedMuteHotkey: null,
 };
 
-const { debug } = initializeDebugAndLogging(state, user_dir);
+initializeDebugAndLogging(user_dir);
 
 fs.ensureDirSync(custom_dir);
 
@@ -111,15 +108,26 @@ if (!gotTheLock) {
   });
 
   app.on('ready', () => {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Cross-Origin-Opener-Policy': ['same-origin'],
+          'Cross-Origin-Embedder-Policy': ['require-corp'],
+        },
+      });
+    });
+
     log.silly('Ready event has fired.');
     app.setAsDefaultProtocolClient('mechvibes');
     const startup_handler = new StartupHandler(app);
 
     log.silly('Creating main window for the first time...');
+    const darkMode = nativeTheme.shouldUseDarkColors;
     if (startup_handler.was_started_at_login && state.startMinimized.is_enabled) {
-      state.win = createAppWindow(false, state, debug);
+      state.win = createAppWindow(false, state, darkMode);
     } else {
-      state.win = createAppWindow(true, state, debug);
+      state.win = createAppWindow(true, state, darkMode);
     }
 
     state.parsedMuteHotkey = parseHotkey(store.get(MUTE_HOTKEY_STORE_ID, DEFAULT_MUTE_HOTKEY) as string);
@@ -174,7 +182,6 @@ if (!gotTheLock) {
       state,
       store,
       startupHandler: startup_handler,
-      debug,
       customDir: custom_dir,
       currentPackStoreId: current_pack_store_id,
       muteHotkeyStoreId: MUTE_HOTKEY_STORE_ID,
@@ -213,7 +220,7 @@ app.on('window-all-closed', function () {
 app.on('activate', function () {
   log.silly('App has been activated');
   if (state.win === null) {
-    state.win = createAppWindow(true, state, debug);
+    state.win = createAppWindow(true, state);
   } else {
     if (process.platform === 'darwin') {
       app.dock?.show();
