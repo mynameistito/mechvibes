@@ -4,7 +4,7 @@ import type { AppState } from '../app-state.js';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function createAppWindow(show: boolean, state: AppState, darkMode = false): BrowserWindow {
+export function createAppWindow(show: boolean, state: AppState, darkMode: boolean): BrowserWindow {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   state.win = new BrowserWindow({
     width: 400,

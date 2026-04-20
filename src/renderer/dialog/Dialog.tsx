@@ -16,9 +16,6 @@ export function Dialog() {
   const [config, setConfig] = useState<DialogConfig | null>(null);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.documentElement.classList.add('dark');
-    }
     api().onDialogConfig(setConfig);
   }, []);
 

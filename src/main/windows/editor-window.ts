@@ -16,7 +16,7 @@ export function openEditorWindow(state: AppState): void {
     show: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#1a1a1a' : '#ffffff',
     webPreferences: {
-      contextIsolation: true,
+      contextIsolation: false,
       nodeIntegration: true,
       webSecurity: true,
     },

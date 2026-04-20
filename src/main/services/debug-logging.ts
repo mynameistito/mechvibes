@@ -5,7 +5,7 @@ const LogTransportMap: Record<string, string> = {
   error: 'red', warn: 'yellow', info: 'cyan', debug: 'magenta', silly: 'green', default: 'unset',
 };
 
-export function initializeDebugAndLogging(user_dir: string): void {
+export function initializeDebugAndLogging(): void {
   log.transports.file.fileName = 'mechvibes.log';
   log.transports.file.level = 'info';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,5 +29,4 @@ export function initializeDebugAndLogging(user_dir: string): void {
     return msg;
   });
 
-  void user_dir;
 }

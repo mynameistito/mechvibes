@@ -8,12 +8,12 @@ const rendererNodeExternals = [
   'electron',
   ...builtinModules,
   ...builtinModules.map(m => `node:${m}`),
-  'electron-store', 'adm-zip', 'fs-extra', 'glob', 'mime-types',
+  'electron-store', 'adm-zip', 'fs-extra', 'glob', 'mime-types', 'howler',
 ]
 
 // Named exports required per module (only what the renderer actually uses)
 const namedExports: Record<string, string[]> = {
-  'electron': ['ipcRenderer', 'shell', 'app', 'dialog', 'nativeImage', 'clipboard', 'nativeTheme', 'contextBridge', 'webFrame', 'ipcMain', 'remote'],
+  'electron': ['ipcRenderer', 'shell', 'app', 'dialog', 'nativeImage', 'clipboard', 'nativeTheme', 'contextBridge', 'webFrame', 'ipcMain'],
   'howler': ['Howler', 'Howl'],
   'mime-types': ['lookup', 'extension', 'charset', 'contentType'],
 }
@@ -22,7 +22,6 @@ function electronRendererNodePlugin(): Plugin {
   const prefix = '\0__evshim__:'
   const shouldShim = (id: string) =>
     rendererNodeExternals.includes(id) ||
-    id === 'howler' ||
     builtinModules.includes(id.replace(/^node:/, ''))
 
   return {

@@ -54,7 +54,7 @@ const state: AppState = {
   parsedMuteHotkey: null,
 };
 
-initializeDebugAndLogging(user_dir);
+initializeDebugAndLogging();
 
 fs.ensureDirSync(custom_dir);
 
@@ -220,7 +220,7 @@ app.on('window-all-closed', function () {
 app.on('activate', function () {
   log.silly('App has been activated');
   if (state.win === null) {
-    state.win = createAppWindow(true, state);
+    state.win = createAppWindow(true, state, nativeTheme.shouldUseDarkColors);
   } else {
     if (process.platform === 'darwin') {
       app.dock?.show();
