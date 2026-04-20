@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, nativeTheme } from 'electron';
 import * as path from 'path';
 import type { AppState } from '../app-state.js';
 import { fileURLToPath } from 'url';
@@ -13,18 +13,25 @@ export function openEditorWindow(state: AppState): void {
   state.editorWindow = new BrowserWindow({
     width: 1200,
     height: 600,
+    show: false,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1a1a1a' : '#ffffff',
     webPreferences: {
-      contextIsolation: true,
+      contextIsolation: false,
       nodeIntegration: true,
       webSecurity: true,
     },
   });
 
+  const themeParam = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
   if (process.env.ELECTRON_RENDERER_URL) {
-    state.editorWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}/editor/index.html`);
+    state.editorWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}/editor/index.html?theme=${themeParam}`);
   } else {
-    state.editorWindow.loadFile(path.join(__dirname, '../../renderer/editor/index.html'));
+    state.editorWindow.loadFile(path.join(__dirname, '../../renderer/editor/index.html'), { query: { theme: themeParam } });
   }
+
+  state.editorWindow.once('ready-to-show', () => {
+    state.editorWindow?.show();
+  });
 
   state.editorWindow.on('closed', function () {
     state.editorWindow = null;

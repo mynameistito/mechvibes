@@ -6,7 +6,6 @@ export interface AppState {
   win: BrowserWindow | null;
   tray: Tray | null;
   installer: BrowserWindow | null;
-  debugWindow: BrowserWindow | null;
   editorWindow: BrowserWindow | null;
   isQuiting: boolean;
   muteState: boolean;

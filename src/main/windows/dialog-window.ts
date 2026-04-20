@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from 'electron';
+import { BrowserWindow, ipcMain, nativeTheme } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,6 +36,7 @@ export function showDialogWindow(
       modal: parent !== null,
       show: false,
       title: 'Mechvibes',
+      backgroundColor: nativeTheme.shouldUseDarkColors ? '#1a1a1a' : '#ffffff',
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
@@ -45,10 +46,11 @@ export function showDialogWindow(
     });
 
     win.removeMenu();
+    const themeParam = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
     if (process.env.ELECTRON_RENDERER_URL) {
-      win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/dialog/index.html`);
+      win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/dialog/index.html?theme=${themeParam}`);
     } else {
-      win.loadFile(path.join(__dirname, '../../renderer/dialog/index.html'));
+      win.loadFile(path.join(__dirname, '../../renderer/dialog/index.html'), { query: { theme: themeParam } });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
