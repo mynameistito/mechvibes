@@ -30,7 +30,7 @@ export function openEditorWindow(state: AppState): void {
   }
 
   state.editorWindow.once('ready-to-show', () => {
-    state.editorWindow!.show();
+    state.editorWindow?.show();
   });
 
   state.editorWindow.on('closed', function () {
