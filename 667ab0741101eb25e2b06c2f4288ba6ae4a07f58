@@ -1,0 +1,131 @@
+src/renderer/install/index.html
+  9d4656f35208a6b9 8,10
+  45c7733156309d43 9
+src/renderer/install/InstallWindow.tsx
+  9d4656f35208a6b9 33-36
+electron.vite.config.ts
+  dda8fd856a261fcb 5,8,14-48,70,72-74
+src/main/index.ts
+  9d4656f35208a6b9 126,128,130
+  61d643b1e0d25897 1,111-120
+  dda8fd856a261fcb 57,223,243
+src/main/services/debug-logging.ts
+  4ee55164ef79f2ee 12
+  dda8fd856a261fcb 8,32-33
+src/main/app-state.ts
+  dda8fd856a261fcb 20
+src/renderer/dialog/Dialog.tsx
+  9d4656f35208a6b9 19-21
+src/renderer/editor/index.html
+  45c7733156309d43 9
+  9d4656f35208a6b9 8,10
+src/main/services/tray.ts
+  dda8fd856a261fcb 9-10
+src/renderer/dialog/index.html
+  45c7733156309d43 8
+  9d4656f35208a6b9 7,9
+src/main/windows/dialog-window.ts
+  45c7733156309d43 1,39,49,51,53
+src/main/windows/app-window.ts
+  61d643b1e0d25897 60-61
+  dda8fd856a261fcb 65
+  9d4656f35208a6b9 7,14,38-41
+  45c7733156309d43 26,28,30
+src/renderer/app/index.html
+  9d4656f35208a6b9 8,10,12
+  45c7733156309d43 9
+src/main/windows/install-window.ts
+  45c7733156309d43 1,12-14,23,25,27
+src/main/windows/editor-window.ts
+  45c7733156309d43 1,16-17,25,27,29,32-35
+src/main/services/ipc-handlers.ts
+  dda8fd856a261fcb 25
+src/renderer/app/AppWindow.tsx
+  9d4656f35208a6b9 228,325-328
+  45c7733156309d43 84-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "667ab0741101eb25e2b06c2f4288ba6ae4a07f58",
+  "prompts": {
+    "45c7733156309d43": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fdff63c0-2827-4a7d-8382-589d91e8e4fb",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 37,
+      "total_deletions": 22,
+      "accepted_lines": 33,
+      "overriden_lines": 0
+    },
+    "4ee55164ef79f2ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7f6f6c36-3a2b-4362-9662-0961b458dba4",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    },
+    "61d643b1e0d25897": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "07cb577f-b45f-424b-9e94-9f8d49d17629",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 14,
+      "total_deletions": 444,
+      "accepted_lines": 14,
+      "overriden_lines": 0
+    },
+    "9d4656f35208a6b9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b966e4b7-cbc1-421a-ab4a-161a72e461e9",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 35,
+      "total_deletions": 11,
+      "accepted_lines": 30,
+      "overriden_lines": 0
+    },
+    "d7cbac101bd1e97a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4dd06db0-cf98-41c8-9ad5-8f5ae0cfdb43",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1168,
+      "overriden_lines": 4
+    },
+    "dda8fd856a261fcb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "af8aeffd-7120-4f29-9140-937938848814",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Tito",
+      "messages": [],
+      "total_additions": 61,
+      "total_deletions": 184,
+      "accepted_lines": 52,
+      "overriden_lines": 0
+    }
+  }
+}
