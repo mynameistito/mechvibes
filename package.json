@@ -14,20 +14,17 @@
     "build:mac": "electron-vite build && electron-builder -m",
     "build:linux": "electron-vite build && electron-builder -l",
     "build:clean": "node tools/clean-dist.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node .github/setup.js"
   },
   "keywords": [],
   "homepage": "https://mechvibes.com",
-  "author": "mynameistito",
+  "author": {
+    "name": "Hai Nguyen",
+    "email": "hainguyen.ts13@gmail.com"
+  },
   "license": "MIT",
   "build": {
-    "files": [
-      "dist/**/*",
-      "!dist/win-unpacked/**",
-      "!dist/linux-unpacked/**",
-      "!dist/mac/**",
-      "!dist/*.{exe,dmg,deb,snap,AppImage}"
-    ],
     "extraResources": [
       {
         "from": "audio",
