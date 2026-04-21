@@ -24,7 +24,7 @@ export function openInstallWindow(packId: string, state: AppState): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     state.installer.loadURL(`${process.env.ELECTRON_RENDERER_URL}/install/index.html?theme=${themeParam}`);
   } else {
-    state.installer.loadFile(path.join(__dirname, '../../renderer/install/index.html'), { query: { theme: themeParam } });
+    state.installer.loadFile(path.join(__dirname, '../renderer/install/index.html'), { query: { theme: themeParam } });
   }
 
   state.installer.webContents.on('did-finish-load', () => {

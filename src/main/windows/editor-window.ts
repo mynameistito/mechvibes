@@ -26,7 +26,7 @@ export function openEditorWindow(state: AppState): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     state.editorWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}/editor/index.html?theme=${themeParam}`);
   } else {
-    state.editorWindow.loadFile(path.join(__dirname, '../../renderer/editor/index.html'), { query: { theme: themeParam } });
+    state.editorWindow.loadFile(path.join(__dirname, '../renderer/editor/index.html'), { query: { theme: themeParam } });
   }
 
   state.editorWindow.once('ready-to-show', () => {

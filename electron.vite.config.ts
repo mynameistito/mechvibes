@@ -27,7 +27,6 @@ function electronRendererNodePlugin(): Plugin {
   return {
     name: 'vite:electron-renderer-node-shim',
     enforce: 'pre',
-    apply: 'serve',
     resolveId(id) {
       if (shouldShim(id)) return prefix + id
     },
@@ -74,7 +73,6 @@ export default defineConfig({
     build: {
       outDir: resolve('dist/renderer'),
       rollupOptions: {
-        external: rendererNodeExternals,
         input: {
           app: resolve('src/renderer/app/index.html'),
           editor: resolve('src/renderer/editor/index.html'),
