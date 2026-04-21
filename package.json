@@ -18,12 +18,16 @@
   },
   "keywords": [],
   "homepage": "https://mechvibes.com",
-  "author": {
-    "name": "Hai Nguyen",
-    "email": "hainguyen.ts13@gmail.com"
-  },
+  "author": "mynameistito",
   "license": "MIT",
   "build": {
+    "files": [
+      "dist/**/*",
+      "!dist/win-unpacked/**",
+      "!dist/linux-unpacked/**",
+      "!dist/mac/**",
+      "!dist/*.{exe,dmg,deb,snap,AppImage}"
+    ],
     "extraResources": [
       {
         "from": "audio",

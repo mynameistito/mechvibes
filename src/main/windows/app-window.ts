@@ -27,7 +27,7 @@ export function createAppWindow(show: boolean, state: AppState, darkMode: boolea
   if (process.env.ELECTRON_RENDERER_URL) {
     state.win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/app/index.html?theme=${themeParam}`);
   } else {
-    state.win.loadFile(path.join(__dirname, '../../renderer/app/index.html'), { query: { theme: themeParam } });
+    state.win.loadFile(path.join(__dirname, '../renderer/app/index.html'), { query: { theme: themeParam } });
   }
 
   state.win.webContents.on('did-finish-load', () => {

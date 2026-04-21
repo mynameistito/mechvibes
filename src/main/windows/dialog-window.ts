@@ -50,7 +50,7 @@ export function showDialogWindow(
     if (process.env.ELECTRON_RENDERER_URL) {
       win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/dialog/index.html?theme=${themeParam}`);
     } else {
-      win.loadFile(path.join(__dirname, '../../renderer/dialog/index.html'), { query: { theme: themeParam } });
+      win.loadFile(path.join(__dirname, '../renderer/dialog/index.html'), { query: { theme: themeParam } });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

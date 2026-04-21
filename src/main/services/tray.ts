@@ -6,8 +6,11 @@ import StartupHandler from '../../main-only/startup-handler.js';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const SYSTRAY_ICON = path.join(__dirname, '../../src/assets/system-tray-icon.png');
-const SYSTRAY_ICON_MUTED = path.join(__dirname, '../../src/assets/system-tray-icon-muted.png');
+const _assetBase = app.isPackaged
+  ? path.join(process.resourcesPath, 'src/assets')
+  : path.join(__dirname, '../../src/assets');
+const SYSTRAY_ICON = path.join(_assetBase, 'system-tray-icon.png');
+const SYSTRAY_ICON_MUTED = path.join(_assetBase, 'system-tray-icon-muted.png');
 
 export interface TrayCallbacks {
   toggleMute: () => void;
