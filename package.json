@@ -15,7 +15,8 @@
     "build:linux": "electron-vite build && electron-builder -l",
     "build:clean": "node tools/clean-dist.js",
     "typecheck": "tsc --noEmit",
-    "test": "node .github/setup.js; node .github/setup.js"
+    "test": "echo \"No tests configured\"; node .github/setup.js",
+    "security:check": "bun scripts/security-check.ts"
   },
   "keywords": [],
   "homepage": "https://mechvibes.com",
